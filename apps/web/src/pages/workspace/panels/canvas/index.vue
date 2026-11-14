@@ -427,7 +427,7 @@ provide("nodePersistence", () => {
     },
   };
 });
-defineExpose({ canvasId, canvasReady, getCanvasContext, addNodeAtPointer, readDocumentNode, saveDocumentNode, mountDocumentNode, observeDocumentNode, prepareCanvasDelete, flushSave: flushCanvasSave, cancelSave: cancelCanvasSave,
+defineExpose({ canvasId, canvasReady, getCanvasContext, addNodeAtPointer, addGeneratedImage, readDocumentNode, saveDocumentNode, mountDocumentNode, observeDocumentNode, prepareCanvasDelete, flushSave: flushCanvasSave, cancelSave: cancelCanvasSave,
   openNodeSearch: () => nodeSearchRef.value?.open(),
   getCanvases: (signal?: AbortSignal) => {
     if (!canvasMenuRef.value) throw new Error("画布菜单尚未就绪");
@@ -672,6 +672,31 @@ function addNodeAtPointer() {
   if (!rect) return;
   const position = pointerPosition ?? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
   void nodeMenuRef.value?.openMenu(new MouseEvent("contextmenu", { clientX: position.x, clientY: position.y }), true);
+}
+
+const importingCodexImages = new Set<string>();
+async function addGeneratedImage(image: { path: string; label: string; id: string; directory: string }) {
+  const directory = project.value?.directory;
+  const signal = canvasController.signal;
+  if (!directory || directory !== image.directory || !canvasReady.value) throw new Error("El lienzo ya no pertenece al proyecto de esta imagen.");
+  if (importingCodexImages.has(image.path) || flow.nodes.value.some(node => node.data.codexAssetId === image.id || node.data.codexAssetPath === image.path)) throw new Error("Esta imagen ya tiene un nodo o se está importando al lienzo.");
+  importingCodexImages.add(image.path);
+  try {
+  const bytes = await useWorkspaceFiles(directory).read(image.path);
+  signal.throwIfAborted();
+  const rect = canvasElement.value?.getBoundingClientRect();
+  if (!rect) throw new Error("El lienzo no está disponible.");
+  const position = screenToFlowCoordinate({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+  const extension = image.path.split(".").at(-1) || "png";
+  await canvasHistory.batch(async () => {
+    const ids = await importCanvasFiles([new File([bytes], `codex.${extension}`, { type: extension === "jpg" || extension === "jpeg" ? "image/jpeg" : `image/${extension}` })], position, { directory, availableNodes: availableNodes.value, signal, flow });
+    signal.throwIfAborted();
+    const node = ids[0] ? flow.findNode(ids[0]) : undefined;
+    if (!node) throw new Error("No se pudo crear el nodo de imagen.");
+    node.data.label = image.label; node.data.codexAssetId = image.id; node.data.codexAssetPath = image.path;
+  });
+  await flushCanvasSave();
+  } finally { importingCodexImages.delete(image.path); }
 }
 
 async function changeHistory(direction: "undo" | "redo") {

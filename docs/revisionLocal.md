@@ -1,6 +1,6 @@
 # Revisión y prueba de la instalación local
 
-Realizada el **13 de noviembre de 2026**, en Windows, sobre Toonflow **v2.0.10** (`6086cdffceb704a632eca143dd16cd461a78cdac`) y los cambios de la rama `editor-es`.
+Revisión inicial realizada el **13 de noviembre de 2026**, en Windows, sobre Toonflow **v2.0.10** (`6086cdffceb704a632eca143dd16cd461a78cdac`) y los cambios de la rama `editor-es`. La actualización posterior de Codex, con inferencia real, está documentada al final de este informe.
 
 ## Resultado
 
@@ -61,4 +61,22 @@ La carga de archivos mediante el selector automatizado de la extensión de Chrom
 
 Los registros están en `localRuntime/`: `antivirusFinal.log`, `antivirusFinalBuild.log`, sus archivos `Console.log`, `dependencyAudit.json`, `dependencyAuditFinal.json`, `finalInstall.log`, `finalBuild.log`, `finalTypecheck.log` y `serverFinalTypecheck.log`. No se suben al repositorio. Los proyectos, ajustes, medios, ejecutables y cachés también quedan fuera de Git.
 
-La [evaluación preliminar de Codex CLI](codexIntegration.md) corresponde a la siguiente etapa. Se comprobó su versión y ayuda local y se consultó documentación oficial; todavía no se conectó al editor.
+Después de la revisión inicial se implementó la [integración con Codex CLI](codexIntegration.md), con el alcance y los resultados siguientes.
+
+## Actualización: Codex CLI y sesión de ChatGPT
+
+La versión **2.0.10-es.2** incorpora propuestas de guion, estructura y personajes, desglose en planos y generación integrada de imágenes. Se verificó el acceso mediante la sesión existente de ChatGPT y se exige esa modalidad antes de ejecutar los pedidos. No se configuraron claves API ni proveedores pagos para las pruebas. Se utilizó el cupo de la suscripción.
+
+En `primerCorto` se completaron **siete pedidos reales**: guion, ficha de Ana, retrato, desglose de tres planos, boceto con el retrato como referencia, análisis de estructura y una variante desde el nodo Imagen con su imagen actual como referencia. El retrato y el boceto se aplicaron a la historia y se crearon sus nodos. La variante quedó guardada en la salida del nodo. Se conservaron los resultados originales.
+
+También se verificaron cancelación temprana, rechazo de trabajos concurrentes y duplicados, separación del historial entre proyectos y restricciones de Origin y cabecera del editor. Después de reiniciar se recuperaron la historia, las imágenes, los nodos y los resultados del historial sin generar de nuevo. La repetición de «Crear nodo imagen» para una imagen ya presente se rechazó y el lienzo conservó sus ocho nodos.
+
+La exportación Markdown `guion1794623214541.md` contiene los planos y la referencia al boceto. El ZIP actualizado tiene **15.273.936 bytes y 36 entradas**, con CRC correcto, historia de versión 2, retrato y boceto incluidos. Se comprobó la descarga por bloques mediante la API local; no se probó restaurar el ZIP en otra instalación.
+
+Los tipos de servidor, web, historia compartida, componentes compartidos y nodo Imagen pasaron. La interfaz, el nodo y el servidor compilaron correctamente. Se probaron los accesos de iniciar y detener con Windows PowerShell; se corrigió un falso error de detención cuando un subproceso de Codex ya había terminado.
+
+`bun audit --json` volvió a terminar con **salida 0 y `{}`**. ClamAV analizó la compilación y los archivos nuevos: el análisis definitivo completó **2.970 archivos, 0 infectados y salida 0**, sin errores de acceso ni avisos de límites. Este pase excluye el Bun sin cambios, que había pasado el análisis inmediatamente anterior junto con 2.971 archivos. Se mantienen las exclusiones y los límites de análisis descritos más arriba; las firmas de antivirus no certifican la ausencia total de malware.
+
+Evidencia adicional privada: `localRuntime/codexFlowResults.json`, `codexHttpResults.json`, `codexExportResults.json`, `codexFinalTypecheck.log`, `codexLastTypecheck.log`, `codexLastWebTypecheck.log`, `codexDependencyAudit.json`, `codexVerifiedAntivirus.log` y `primerCortoCodex.zip`. La copia anterior del ejemplo está en `work/codexExampleBefore20261113223432/`.
+
+No se probaron cancelación durante una imagen en curso, falta real de cupo, cambio de cuenta en pleno turno ni otros sistemas operativos. Las funciones de video, audio, colaboración y proveedores externos siguen fuera de esta prueba. La guía de Codex detalla el uso, la protección frente a conflictos y las limitaciones de continuidad visual.

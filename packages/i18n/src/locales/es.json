@@ -4215,5 +4215,11 @@
   "调整节点大小（方向键微调）": "Cambiar el tamaño del nodo (usar las flechas)",
   "移动到…": "Mover a…",
   "输入有效的文件或文件夹名称": "Escribí un nombre de archivo o carpeta válido.",
-  "用 {0} 个关键帧生成运镜": "Crear un movimiento de cámara con {0} fotogramas clave"
+  "用 {0} 个关键帧生成运镜": "Crear un movimiento de cámara con {0} fotogramas clave",
+  "局部重绘": "Retoque local",
+  "打光": "Iluminación",
+  "宫格切分": "Dividir cuadrícula",
+  "标记": "Anotar",
+  "全景图": "Panorama",
+  "多角度": "Varios ángulos"
 }

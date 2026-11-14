@@ -7,8 +7,17 @@ $editorProcessId = [int](Get-Content -LiteralPath $pidPath)
 $process = Get-Process -Id $editorProcessId -ErrorAction SilentlyContinue
 if ($process) {
   if ($process.Path -ne $bunPath) { throw 'El identificador pertenece a otro programa. No se detuvo ningún proceso.' }
-  taskkill.exe /PID $editorProcessId /T /F | Out-Null
-  if ($LASTEXITCODE -ne 0) { throw 'No se pudo detener el editor.' }
+  $killResult = & {
+    $ErrorActionPreference = 'Continue'
+    $output = taskkill.exe /PID $editorProcessId /T /F 2>&1
+    [PSCustomObject]@{ ExitCode = $LASTEXITCODE; Output = $output }
+  }
+  $killExit = $killResult.ExitCode
+  $remainingProcess = Get-Process -Id $editorProcessId -ErrorAction SilentlyContinue
+  if ($killExit -ne 0 -and $remainingProcess -and $remainingProcess.Path -eq $bunPath) {
+    $killResult.Output | Set-Content -LiteralPath (Join-Path $projectDirectory 'localRuntime\stopEditor.log')
+    throw 'El servidor sigue activo. Revisá localRuntime/stopEditor.log.'
+  }
 }
 Remove-Item -LiteralPath $pidPath -Force
 Write-Output 'Editor detenido. Los proyectos se conservan.'

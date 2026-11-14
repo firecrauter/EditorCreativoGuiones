@@ -408,6 +408,12 @@ const mentionSource: MentionCanvasSource = {
 };
 
 defineExpose({ canvasId, canvasReady, canvasListReady, getCanvasContext, readDocumentNode, readDocumentNodes, focusDocumentNode, saveDocumentNode, mountDocumentNode, observeDocumentNode, resolveDocumentNodeFile, performFileAction, flushSave, cancelSave,
+  getMentionNodes: () => activeInstance.value?.getMentionNodes() ?? [],
+  addGeneratedImage: (image: Parameters<CanvasInstance["addGeneratedImage"]>[0]) => {
+    const panel = activeInstance.value;
+    if (!panel) throw new Error("El lienzo no está disponible.");
+    return panel.addGeneratedImage(image);
+  },
   addNodeAtPointer: () => activeInstance.value?.addNodeAtPointer(),
   openNodeSearch: () => activeInstance.value?.openNodeSearch(),
   mentionSource,

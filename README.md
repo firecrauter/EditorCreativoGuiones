@@ -6,7 +6,9 @@ Fork personal de Toonflow 2.0.10 para crear historias, guiones, storyboards y re
 
 Incluye un primer espacio de **Historia y personajes**, inspirado en la organización narrativa de Causality y la presentación visual de personajes de STARC.
 
-[Guía del fork y arranque](docs/editorLocal.md) · [Revisión y validación local](docs/revisionLocal.md) · [Posible integración con Codex](docs/codexIntegration.md) · [Proyecto original](https://github.com/HBAI-Ltd/Toonflow-app) · [Licencia MIT](LICENSE) · [Avisos de terceros](docs/thirdPartyNotices.md)
+La integración con **Codex CLI y tu sesión de ChatGPT** permite proponer guiones, desarrollar personajes, desglosar planos y generar retratos, bocetos e imágenes desde el nodo Imagen. Incluye vista previa, historial, cancelación y guardado con protección de revisiones. [Uso y pruebas reales](docs/codexIntegration.md).
+
+[Guía del fork y arranque](docs/editorLocal.md) · [Revisión y validación local](docs/revisionLocal.md) · [Codex CLI](docs/codexIntegration.md) · [Proyecto original](https://github.com/HBAI-Ltd/Toonflow-app) · [Licencia MIT](LICENSE) · [Avisos de terceros](docs/thirdPartyNotices.md)
 
 La documentación original de Toonflow se conserva a continuación.
 

@@ -58,6 +58,7 @@
         "@toonflow/multi-tenant-models": "workspace:*",
         "@toonflow/multi-tenant-source-mapping": "workspace:*",
         "@toonflow/providers": "workspace:*",
+        "@toonflow/story": "workspace:*",
         "@toonflow/teams-scaffold": "workspace:*",
         "@toonflow/tool-asset-operator": "workspace:*",
         "@toonflow/tool-browser": "workspace:*",
@@ -130,6 +131,7 @@
         "@toonflow/provider-web": "workspace:*",
         "@toonflow/providers": "workspace:*",
         "@toonflow/server": "workspace:*",
+        "@toonflow/story": "workspace:*",
         "@toonflow/tool-browser": "workspace:*",
         "@toonflow/tool-canvas": "workspace:*",
         "@toonflow/tools-scaffold": "workspace:*",
@@ -492,6 +494,7 @@
         "@form-create/element-ui": "^3",
         "@tabler/icons-vue": "^3.46.0",
         "@toonflow/model-icons": "workspace:*",
+        "@toonflow/story": "workspace:*",
         "vue-draggable-plus": "^0.6.1",
         "x-sender": "1.4.6",
       },
@@ -618,6 +621,7 @@
       "version": "2.0.0",
       "dependencies": {
         "@tabler/icons-vue": "^3.46.0",
+        "@toonflow/story": "workspace:*",
         "three": "0.184.0",
       },
       "devDependencies": {
@@ -738,6 +742,13 @@
       "version": "0.0.0",
       "dependencies": {
         "@toonflow/file": "workspace:*",
+      },
+    },
+    "packages/story": {
+      "name": "@toonflow/story",
+      "version": "0.0.0",
+      "dependencies": {
+        "zod": "^4.6.7",
       },
     },
     "packages/teamScaffold": {
@@ -1636,6 +1647,8 @@
     "@toonflow/server": ["@toonflow/server@workspace:apps/server"],
 
     "@toonflow/startup": ["@toonflow/startup@workspace:packages/startup"],
+
+    "@toonflow/story": ["@toonflow/story@workspace:packages/story"],
 
     "@toonflow/team-storyboard": ["@toonflow/team-storyboard@workspace:packages/teams/storyboardTeam"],
 

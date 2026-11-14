@@ -1,87 +1,80 @@
-# Integración de Codex CLI con el editor
+# Codex CLI en el Editor Creativo
 
-Revisión del **13 de noviembre de 2026**, para el fork personal local de Toonflow. **La revisión del protocolo está realizada; el adaptador del editor todavía no está implementado. No se inició ningún turno de inferencia ni se generaron imágenes durante esta revisión.**
+Integración implementada para uso personal local en **2.0.10-es.2**, sobre `codex-cli 0.163.0`. Revisión y pruebas reales: **13 de noviembre de 2026**.
 
-## Conclusión y corrección de la revisión inicial
+## Abrir y usar
 
-Podemos diseñar la integración para texto y para la herramienta de imágenes integrada en Codex. La documentación actual permite generar y editar imágenes desde el CLI, incluyendo referencias visuales. El `--image` del CLI adjunta una referencia; la generación es una herramienta del agente. [Generación de imágenes oficial](https://learn.chatgpt.com/docs/image-generation).
+Ejecutá `iniciarEditor.cmd` y abrí el proyecto `primerCorto`. En **Historia y personajes → Codex · ChatGPT** aparece el asistente. Usa la sesión existente del CLI; el botón «Conectar Codex» comprueba la conexión, sin iniciar una generación. Muestra los modelos disponibles y el cupo informado por Codex.
 
-La autenticación con ChatGPT utiliza el acceso de la suscripción; la clave de API corresponde a otra modalidad de facturación. [Autenticación oficial](https://learn.chatgpt.com/docs/auth). Las imágenes consumen el cupo general de Codex, aproximadamente 3–5 veces más rápido que turnos similares sin imágenes, según tamaño y calidad. Después del cupo pueden entrar en juego créditos disponibles. [Uso y límites](https://learn.chatgpt.com/docs/pricing).
+Acciones disponibles:
 
-La revisión preliminar remitía a las limitaciones de otro flujo, Sign in with ChatGPT para aplicaciones con tokens externos. Esas limitaciones no establecen qué puede hacer el CLI local autenticado normalmente. Esta revisión comprueba esa distinción y sustituye la incertidumbre anterior sobre las imágenes.
+- **Proponer guion:** propone título, premisa y cambios o nuevos beats. Conserva los IDs existentes; no elimina beats automáticamente.
+- **Analizar estructura:** observa causas y consecuencias y propone cambios causales. Las observaciones se conservan en el historial.
+- **Desarrollar personaje:** trabaja deseo, conflicto, arco, relaciones, voz y aspecto. Con un personaje seleccionado, la propuesta queda limitada a ese personaje.
+- **Desglosar en planos:** prepara título, acción, encuadre, cámara, duración, personajes y prompt visual para cada plano. Los planos aparecen en la pestaña **Storyboard** al aplicar la propuesta.
+- **Generar retrato:** usa el personaje seleccionado. También se abre directamente desde su ficha.
+- **Generar boceto:** usa el plano seleccionado; su ficha tiene un acceso directo. Los retratos de sus personajes se seleccionan como referencias iniciales y se pueden desmarcar.
+- **Generar imagen:** acepta un pedido libre y referencias visuales del proyecto.
 
-## Comprobaciones en esta PC
+Las propuestas de texto se revisan antes de **Aplicar propuesta**. Una imagen puede usarse como retrato, asignarse al plano o enviarse al lienzo con **Crear nodo imagen**. Cada pedido de imagen solicita una imagen; admite hasta cuatro referencias existentes del proyecto, de hasta 10 MiB cada una.
 
-Se utilizó la instalación existente de `codex-cli 0.163.0`, sin actualizarla ni modificar su configuración:
+En el **nodo Imagen**, seleccioná el nodo y pulsá **Codex · ChatGPT** en su barra. Un nodo vacío también muestra **Generar con Codex**. Para editar una imagen, marcá «Imagen actual del nodo», describí el cambio y generá una variante. **Usar en este nodo** cambia su salida. Las herramientas originales de otros proveedores conservan sus propias configuraciones; el acceso de Codex utiliza este panel.
 
-| Comprobación sin inferencia | Resultado |
+## Sesión, cupo y modalidad
+
+Se exige que `account/read` informe autenticación `chatgpt`. Si no hay sesión o el CLI está en modalidad de clave API, el editor detiene el pedido y explica cómo iniciar sesión con `codex login`. No abre, copia ni guarda tokens en los proveedores de Toonflow. Se eliminan claves y tokens de proveedor del entorno del proceso hijo y se selecciona el proveedor oficial de Codex. No hay alternativa automática a una API paga.
+
+La herramienta integrada permite generación y edición desde Codex CLI. [Imágenes en Codex](https://learn.chatgpt.com/docs/image-generation). Usa el cupo compartido de la suscripción; las imágenes consumen aproximadamente 3–5 veces más que turnos similares sin imágenes. Después del cupo pueden usarse créditos disponibles. El panel muestra si la cuenta declara créditos y rechaza nuevos pedidos cuando el cupo consultado está agotado. Otras sesiones comparten uso; la consulta previa no reserva cupo. [Uso y límites](https://learn.chatgpt.com/docs/pricing).
+
+No se configuraron claves API ni se compraron créditos durante las pruebas. Los pedidos reales se hicieron con la sesión existente de ChatGPT. Esto no equivale a generación ilimitada.
+
+## Qué se implementó
+
+El servidor Bun inicia `codex app-server` por `stdio` y usa JSONL. Hay un proceso bajo demanda y un trabajo activo a la vez en el editor. Cada acción crea una conversación efímera con el contexto narrativo actual; el historial del editor se guarda en el proyecto. La documentación del protocolo contempla integración, eventos y cancelación. [App-server oficial](https://learn.chatgpt.com/docs/app-server).
+
+Los puntos principales del código son:
+
+| Archivo o carpeta | Responsabilidad |
 | --- | --- |
-| `codex login status` | Inicio de sesión mediante ChatGPT. Se consultó el estado del CLI; las credenciales no se incorporaron al editor. |
-| Inicio de `app-server` por `stdio` e intercambio `initialize` / `initialized` | Correcto. El proceso de revisión se cerró al terminar. |
-| `account/read`, con `refreshToken: false` | Tipo de cuenta `chatgpt`. No se guardaron correo, identificadores ni tokens en el informe. |
-| `modelProvider/capabilities/read` | `imageGeneration: true`, `webSearch: true`. |
-| `account/rateLimits/read` | Consulta correcta; no se publicaron datos de uso personales. |
-| Esquemas generados por el propio CLI | Hay eventos `imageGeneration` y parámetros de salida estructurada en `turn/start`. |
+| `apps/server/src/utils/codex/client.ts` | Descubrimiento del CLI, proceso sin shell, intercambio RPC y control de conexión. |
+| `apps/server/src/utils/codex/index.ts` | Cuenta, modelos y límites; trabajos, prompts, propuestas, imágenes e historial. |
+| `apps/server/src/routes/codex/` | Estado, envío, consulta, historial y cancelación, restringidos al editor local. |
+| `packages/story/` | Formato de historia y validación compartida de solicitudes, resultados y aplicación de propuestas. |
+| `packages/nodeShared/src/components/codexPanel.vue` | Panel reutilizado por el espacio narrativo y el nodo Imagen. |
+| `apps/web/src/pages/workspace/panels/storyPanel.vue` | Propuestas narrativas, fichas de personajes y storyboard. |
+| `packages/nodes/imageNode/src/index.vue` | Generación o edición desde el nodo y aplicación a su salida. |
 
-La capacidad declarada por el proveedor y la presencia del esquema **no equivalen a haber probado una generación real**. Falta validar un turno de texto y una imagen con esta cuenta, con un pedido concreto del usuario y sin activar una API paga como alternativa.
+El proceso creativo tiene comandos de terminal, hooks, subagentes, conectores y búsqueda web desactivados. También desactiva los servidores MCP heredados para esos trabajos y rechaza solicitudes de herramientas o permisos que esta integración no ofrece. Las imágenes usan la herramienta integrada, no un script con una clave API.
 
-La evidencia resumida sin credenciales está en `localRuntime/codexCapabilities.json`; los esquemas de la versión instalada, en `localRuntime/codexProtocol/`. Ambos quedan fuera de Git. No hay que copiar estos esquemas completos al producto: al implementar se tomarán los tipos necesarios y se fijará la versión compatible.
+El modelo recibe el contexto enviado por el panel y las referencias seleccionadas. Su respuesta se valida antes de aplicarla. Una propuesta de texto deja de ser aplicable si cambió la historia desde el pedido. La escritura utiliza revisiones de archivo; un conflicto no sobrescribe la versión externa. Los trabajos ya aplicados se identifican para evitar aplicarlos dos veces.
 
-## Arquitectura propuesta
+## Archivos e historial
 
-OpenAI ofrece `codex app-server` para integrar clientes con historial, autenticación, aprobaciones y eventos progresivos. `stdio` es su transporte local predeterminado. Tiene cancelación y consultas de cuenta y límites. La API contiene funciones experimentales, por lo que conviene trabajar con el esquema de la versión instalada. [Protocolo oficial](https://learn.chatgpt.com/docs/app-server).
+- `story.json` usa ahora formato **versión 2**, con planos y registros de propuestas aplicadas. Se pueden cargar historias de versión 1; se convierten al guardar cambios. Una instalación antigua del fork no debe usarse para editar el formato nuevo.
+- `assets/codex/` conserva los resultados originales importados de Codex. Se valida ubicación de origen, formato PNG/JPEG/WebP y límite de 20 MiB antes de importarlos.
+- `codexHistory/` guarda pedidos, contexto, resultados y estados, sin credenciales. El panel muestra los últimos 30. Este material forma parte del proyecto y debe tenerse en cuenta al compartir su ZIP.
+- Crear un nodo reutiliza la importación normal del lienzo y su guardado. No se modifica el JSON del lienzo desde un modelo ni se habilita MCP externo.
+- Cerrar el panel deja que el trabajo termine en el servidor. Se recupera desde Historial. Detener el servidor interrumpe los trabajos; al reabrir no se repiten automáticamente.
+- El guion Markdown exportado incluye también los planos y sus imágenes asignadas. El ZIP conserva la historia, el historial y los recursos.
 
-El siguiente diseño es una propuesta para este editor:
+Antes de la prueba se conservó una copia del proyecto en `work/codexExampleBefore20261113223432/`. El proyecto, la copia, los resultados y los registros están excluidos de Git.
 
-```mermaid
-flowchart LR
-  editor[Editor en Chrome] <--> backend[Servidor Bun local]
-  backend <-->|JSONL por stdio| codex[Codex app-server]
-  codex --> cuenta[Sesión ChatGPT administrada por Codex]
-  backend --> propuesta[Vista previa de cambios]
-  propuesta --> archivos[Historia y recursos del proyecto]
-```
+## Validación real del ejemplo
 
-El editor tendría una opción **Codex · ChatGPT**. El backend mantendría el proceso del CLI y traduciría sus eventos al panel; las credenciales seguirían gestionadas por Codex. La conversación se vincularía al proyecto mediante un identificador de thread. La interfaz mostraría conexión, modalidad, límites, actividad y cancelación.
+Sobre «La última luz» se completaron siete pedidos:
 
-La primera versión enviaría la premisa, personajes y beats elegidos, incluyendo el estado todavía abierto en el panel. Para texto pediría una propuesta con estructura JSON validada. El usuario vería los cambios antes de aplicarlos; el guardado usaría la revisión original de `story.json` y conservaría el contenido si otra ventana lo modificó. No se aplicarían cambios a otro proyecto si el usuario cambia de carpeta mientras espera.
+| Acción | Resultado verificado |
+| --- | --- |
+| Guion | Propuesta real recibida y aplicada en la interfaz; conserva 3 beats, causas y 21 segundos. |
+| Personaje | Ficha de Ana desarrollada y aplicada; conserva su identidad y arco. |
+| Retrato | PNG real de 1254 × 1254, asignado a Ana y convertido en nodo de imagen. |
+| Storyboard | 3 planos con duraciones 7, 6 y 8 segundos, aplicados y visibles en su pestaña. |
+| Boceto | PNG real de 1672 × 941, usando el retrato como referencia; asignado al primer plano y convertido en nodo. |
+| Estructura | Análisis real completado y conservado para revisar en Historial. |
+| Nodo Imagen | Edición real de 1672 × 941 con la imagen actual como referencia; variante aplicada y comprobada en la salida guardada del nodo. |
 
-El control de cupo debe ser explícito: mostrar cuántas imágenes se solicitan, consultar límites y detener una cola cuando se notifique agotamiento. Las otras sesiones de Codex comparten uso; una lectura previa no garantiza cuánto cupo quedará al finalizar. No se debe presentar este acceso como «gratis e ilimitado», prometer gasto cero con créditos activos ni habilitar un cambio automático a API paga.
+Además se verificaron: cancelación temprana, rechazo de concurrencia y pedidos duplicados (409), aislamiento del historial de otro proyecto (404), rechazo de otro Origin y de solicitudes sin la cabecera del editor (403) y parámetros inválidos (400).
 
-## Qué aprovechar para la creación
+Los registros privados están en `localRuntime/codexFlowResults.json`, `codexHttpResults.json`, `codexFinalTypecheck.log`, `codexBuild.log` y `codexDependencyAudit.json`. Los cinco chequeos de tipos relevantes y la compilación pasaron; `bun audit` terminó con salida 0 y `{}`.
 
-| Área | Acciones propuestas | Resultado en el editor |
-| --- | --- | --- |
-| Guion | Premisa y sinopsis; escaleta; alternativas de diálogo; adaptación a una duración; revisión de continuidad | Texto editable y propuestas de beats, sin perder la versión anterior. |
-| Estructura al estilo Causality | Examinar causa y efecto, motivaciones, preparación y consecuencias; señalar beats aislados o reordenamientos | Observaciones asociadas a IDs de beats y cambios revisables en «Provocado por». |
-| Personajes al estilo STARC | Ficha de deseo, conflicto, arco, voz y relaciones; contradicciones entre ficha y guion | Propuestas sobre la ficha existente y retratos asociados al personaje. |
-| Storyboard de texto | Desglosar cada beat en planos, encuadre, acción, duración, cámara, sonido y diálogo | Lista de planos vinculados al beat de origen y preparada para crear nodos. |
-| Storyboard visual | Generar un boceto por plano; variar encuadre o luz; editar un boceto conservando las referencias aprobadas | Imágenes versionadas, con referencia al plano, personajes y prompt. |
-| Referencias 3D | Usar una captura de Dirección 3D como guía de composición junto con imágenes de personajes y estilo | Una base visual para la generación; requiere revisar que respete el encuadre y la identidad. |
-| Animatic | Ordenar imágenes y duraciones aprobadas y ensamblarlas con FFmpeg local | Video de previsualización sin necesitar un modelo generador de video. |
-
-Para continuidad visual conviene conservar retratos aprobados, vestuario, paleta y una guía de estilo del proyecto. Se reutilizarían como referencias en cada plano. Esto mejora la consistencia, pero no garantiza identidad o geometría perfectas entre generaciones.
-
-Los esquemas locales describen el evento `imageGeneration` con `status`, `result`, `savedPath` opcional, `revisedPrompt` y un fallo de cupo. El adaptador preferiría el archivo devuelto cuando exista, comprobaría formato y tamaño y lo copiaría con un nombre nuevo dentro de los recursos del proyecto. Debe manejar también la ausencia de `savedPath`, los errores y la cancelación; no adivinar la codificación de `result` ni aceptar cualquier ruta como recurso importable.
-
-No se verificaron generación nativa de video, voz o música mediante la suscripción en este CLI. El animatic propuesto utiliza medios existentes y FFmpeg. Los proveedores de video y audio de Toonflow requieren su propia revisión de disponibilidad y costos.
-
-## Qué reutilizar y qué agregar
-
-La inspección del repositorio muestra:
-
-- `apps/server/src/agent/runtime/model.ts` utiliza el motor de agentes de Pi y la configuración de proveedores de Toonflow. Integrar Codex necesita un adaptador de ejecución propio; no consiste solamente en añadir un modelo al selector actual.
-- `packages/mcp` ya ofrece a agentes externos estado de la aplicación, consultas del lienzo, operaciones de nodos y transferencia de archivos. Su interruptor está apagado de forma predeterminada; no se habilitó durante la revisión.
-- `packages/tools/canvas/src/runtime.ts` expone operaciones como `getCanvas`, `addNode`, `connectNodes`, `getNodeTools` y `nodeTools`. Se pueden reutilizar para crear y actualizar el storyboard en la interfaz abierta.
-- `apps/web/src/pages/workspace/panels/storyPanel.vue` ya valida la historia y guarda con revisiones, pero todavía no ofrece una interfaz de herramientas para beats y personajes.
-
-Para el primer alcance propongo agregar el puente del CLI en el servidor, el estado de conexión y las acciones de propuesta en el panel narrativo. El resultado se aplicaría con el guardado existente. En una etapa posterior se expondrían herramientas acotadas de historia y lienzo a Codex, filtrando por proyecto y operación; una operación que invoque al agente de Toonflow con un proveedor pago no debe colarse en ese recorrido.
-
-## Orden recomendado de implementación
-
-1. **Texto:** conectar la sesión existente, mostrar cuenta/modalidad y límites, enviar contexto seleccionado, recibir propuestas progresivas y permitir cancelación. Tres acciones iniciales: «Analizar estructura», «Desarrollar personaje» y «Desglosar en planos».
-2. **Aplicación de cambios:** vista previa y aceptación por cambios, validación de IDs y relaciones y protección frente a revisiones antiguas. Conservar las propuestas rechazadas o fallidas sin sobrescribir el proyecto.
-3. **Imágenes:** validar una generación y una edición con referencia mediante la herramienta integrada; importar el resultado y conservar versiones. Empezar por un retrato y un plano, con solicitud explícita.
-4. **Producción:** crear nodos del storyboard a partir de los planos aprobados, vincular recursos y preparar el animatic. Incluir acciones por selección para no regenerar el proyecto completo por un cambio pequeño.
-
-Esta revisión no agrega botones ficticios, adaptadores de producción ni cambios a las credenciales. Deja definido qué se comprobó, qué se reutiliza y cómo implementar la siguiente etapa sin reemplazar el editor de nuevo.
+No se probó una cancelación a mitad de una generación de imagen, el cambio de cuenta en pleno turno, una cuenta sin cupo ni otros sistemas operativos o versiones de CLI. La continuidad visual depende del modelo y de las referencias: no se garantiza identidad o geometría perfectas. La generación de video, voz o música por la suscripción y el animatic automático quedan fuera de esta integración.

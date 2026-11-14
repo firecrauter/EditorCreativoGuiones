@@ -11,6 +11,7 @@
     :style="{ width: previewUrl && imageWidth ? `${imageWidth + 18}px` : undefined }">
     <template v-if="editor?.mode" #top><div ref="paintToolbar" /></template>
     <template #topActions>
+      <el-button text :disabled="uploading" @click.stop="openCodex">Codex · ChatGPT</el-button>
       <el-button class="panoramaButton" :icon="IconPanoramaHorizontal" :disabled="uploading || editor?.busy || lighting?.generating || multiAngle?.generating || gridSplit?.splitting || inpaintPrompt?.creating || panorama?.busy || !previewUrl" text title="全景图" aria-label="全景图" @click.stop="panorama?.open($event)">全景图<icon-chevron-down class="menuChevron" :size="14" /></el-button>
       <el-button :icon="IconBrush" :disabled="uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl || gridSplit?.splitting" text title="局部重绘" aria-label="局部重绘" @click.stop="startEditor('inpaint')">局部重绘</el-button>
       <el-button :icon="IconSun" :disabled="uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl || gridSplit?.splitting" text title="打光" aria-label="打光" @click.stop="openLighting">打光</el-button>
@@ -29,6 +30,7 @@
       <el-button :icon="IconPencil" :disabled="uploading || lighting?.generating || multiAngle?.generating || panorama?.busy || !previewUrl || gridSplit?.splitting" text title="标记" aria-label="标记" @click.stop="startEditor('mark')" />
     </template>
     <div class="imageContent nopan" :class="{ empty: !outputFile }">
+      <el-button v-if="!outputFile" class="nodrag nopan" :disabled="uploading" @click.stop="openCodex">Generar con Codex</el-button>
       <imageEditor
         v-if="previewUrl"
         ref="editor"
@@ -56,6 +58,9 @@
       <div v-else ref="inpaintTarget" />
     </template>
   </nodeSkeleton>
+  <el-dialog v-model="codexVisible" title="Imagen con Codex · ChatGPT" width="min(920px, 96vw)" appendToBody destroyOnClose>
+    <codexPanel v-if="codexVisible && codexFiles" :directory="codexDirectory" :readImage="codexFiles.read" :references="outputFile ? [{ path: outputFile.url, label: 'Imagen actual del nodo' }] : []" canApplyImage @apply="useCodexImage" />
+  </el-dialog>
   <imageInpaintPrompt v-if="editor?.mode === 'inpaint'" ref="inpaintPrompt" :target="inpaintTarget" :createDraft="createInpaint" :disabled="uploading" />
   <imageLighting v-if="lightingVisible" ref="lighting" :src="imagePreviewUrl" :source="outputFile" :target="lightingTarget" :disabled="uploading || gridSplit?.splitting" @close="lightingVisible = false" />
   <imageMultiAngle v-if="multiAngleVisible" ref="multiAngle" :src="imagePreviewUrl" :source="outputFile" :target="multiAngleTarget" :disabled="uploading || gridSplit?.splitting" @close="multiAngleVisible = false" />
@@ -69,9 +74,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref } from "vue";
 import { IconPhoto, IconUpload, IconTransfer, IconLayoutGrid, IconBrush, IconPencil, IconSun, IconCameraRotate, IconPanoramaHorizontal, IconChevronDown } from "@tabler/icons-vue";
-import { ElButton, ElImageViewer, ElMessage } from "element-plus";
+import { ElButton, ElDialog, ElImageViewer, ElMessage } from "element-plus";
+import codexPanel from "@toonflow/node-shared/codexPanel";
+import type { CodexJob } from "@toonflow/story";
 import { nodeSkeleton, nodeTools, useNode, z, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
 import { getMediaMimeType } from "@toonflow/node-shared/mediaTypes";
 import imageGridSplit from "./components/imageGridSplit.vue";
@@ -93,6 +100,34 @@ defineOptions({
 const { node, nodeProps, outputs, nodeEvent, files, updateNodeInternals } = useNode({
   label: "图片",
 });
+const codexVisible = ref(false);
+const codexDirectory = ref("");
+let codexFiles: ReturnType<typeof files.getWorkspaceFiles> | undefined;
+let live = true;
+onBeforeUnmount(() => { live = false; });
+async function openCodex() {
+  try {
+    const bound = files.getWorkspaceFiles();
+    const { directory } = await bound.list();
+    if (!live) return;
+    codexFiles = bound; codexDirectory.value = directory; codexVisible.value = true;
+  } catch (error) { ElMessage.error(error instanceof Error ? error.message : "No se pudo abrir Codex."); }
+}
+async function useCodexImage(job: CodexJob) {
+  if (job.result?.kind !== "image" || !codexFiles || uploading.value) return;
+  uploading.value = true;
+  try {
+    const current = await files.getWorkspaceFiles().list();
+    if (!live || current.directory !== codexDirectory.value) throw new Error("El nodo cambió de proyecto.");
+    const bytes = await codexFiles.read(job.result.path);
+    const bitmap = await createImageBitmap(new Blob([bytes], { type: job.result.mimeType })); bitmap.close();
+    if (!live) return;
+    outputs.value.image = { dataType: "IMAGE", value: { url: job.result.path, mimeType: job.result.mimeType } };
+    Object.assign(node.data, { codexAssetId: job.id, codexAssetPath: job.result.path });
+    ElMessage.success("Imagen de Codex aplicada al nodo.");
+  } catch (error) { ElMessage.error(error instanceof Error ? error.message : "No se pudo aplicar la imagen."); }
+  finally { uploading.value = false; }
+}
 const fileInput = ref<HTMLInputElement>();
 const gridSplit = ref<InstanceType<typeof imageGridSplit>>();
 const editor = ref<InstanceType<typeof imageEditor>>();

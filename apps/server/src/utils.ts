@@ -1,6 +1,7 @@
 import * as assets from "@/utils/assets";
 import * as browser from "@/utils/browser";
 import * as singleAgent from "@/utils/singleAgent";
+import * as codex from "@/utils/codex";
 import * as desktop from "@/utils/desktop";
 import * as providerDebug from "@/utils/media/debug";
 import * as mediaGeneration from "@/utils/media/generation";
@@ -42,6 +43,7 @@ export default {
   assets,
   browser,
   singleAgent,
+  codex,
   desktop,
   providerDebug,
   mediaGeneration,

@@ -114,7 +114,7 @@
     <floatingAgent v-model="agentVisible" :inert="workspaceStore.projectLoadingVisible" @resize="agentWidth = $event" />
     <settings v-model="settingsVisible" />
     <el-dialog v-model="storyVisible" title="Historia y personajes" fullscreen destroyOnClose :beforeClose="closeStory">
-      <storyPanel v-if="storyVisible && workspaceStore.project" :key="workspaceStore.project.directory" ref="storyPanelRef" :directory="workspaceStore.project.directory" />
+      <storyPanel v-if="storyVisible && workspaceStore.project" :key="workspaceStore.project.directory" ref="storyPanelRef" :directory="workspaceStore.project.directory" :referenceImages="storyReferences" @addImage="addStoryImage" />
     </el-dialog>
     <el-dialog v-model="contactVisible" :title="contactInfo.title" width="min(360px, calc(100vw - 32px))" alignCenter appendToBody>
       <div class="contactContent">
@@ -147,6 +147,7 @@ import { registerWorkspaceControl, waitForControlValue } from "@/lib/mcpControl"
 import anonymousData from "@/lib/anonymousData";
 import { useProviderBalances } from "@/lib/providerBilling";
 import canvasPanel from "./panels/canvas/canvasHost.vue";
+import { isNodeOutput } from "@toonflow/nodes-scaffold/values";
 import type { DocumentNodeOptions } from "./panels/canvas/canvasFiles";
 import workspaceMenu from "./components/workspaceMenu.vue";
 import floatingAgent from "./components/floatingAgent.vue";
@@ -155,6 +156,15 @@ const documentPanel = defineAsyncComponent(() => import("./panels/document/index
 const storyPanel = defineAsyncComponent(() => import("./panels/storyPanel.vue"));
 const storyVisible = ref(false);
 const storyPanelRef = ref<InstanceType<typeof storyPanel>>();
+const storyReferences = computed(() => (canvasPanelRef.value?.getMentionNodes() ?? []).flatMap(node => Object.values(node.data.outputs ?? {}).flatMap(output => isNodeOutput(output) && output.dataType === "IMAGE" ? [{ path: output.value.url, label: typeof node.data.label === "string" ? node.data.label : "Imagen del lienzo" }] : [])));
+async function addStoryImage(image: { path: string; label: string; id: string; directory: string }) {
+  try {
+    activePanel.value = "canvas"; await nextTick();
+    if (!canvasPanelRef.value) throw new Error("El lienzo no está disponible.");
+    await canvasPanelRef.value.addGeneratedImage(image);
+    ElMessage.success("Nodo de imagen creado y guardado en el lienzo.");
+  } catch (error) { ElMessage.error(error instanceof Error ? error.message : "No se pudo crear el nodo."); }
+}
 
 async function closeStory(done: () => void) {
   try { await storyPanelRef.value?.flushSave(); done(); }
@@ -181,7 +191,7 @@ const panelOptions = [
   { label: "画布", value: "canvas", icon: IconVector },
   { label: "文档", value: "document", icon: IconFileText },
 ];
-const agentVisible = ref(true);
+const agentVisible = ref(false);
 const agentWidth = ref(0);
 const settingsVisible = ref(false);
 const helpVisible = ref(false);

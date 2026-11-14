@@ -1,5 +1,5 @@
 <template>
-  <section class="storyEditor" aria-label="Historia y personajes">
+  <section class="storyEditor" aria-label="Historia y personajes" :inert="applying">
     <header class="storyHeader">
       <div class="storyIdentity">
         <label>Título<input v-model="story.title" aria-label="Título de la historia" :disabled="!ready" /></label>
@@ -9,8 +9,10 @@
         <el-radio-group v-model="view" aria-label="Vista narrativa">
           <el-radio-button value="structure">Estructura</el-radio-button>
           <el-radio-button value="characters">Personajes</el-radio-button>
+          <el-radio-button value="storyboard">Storyboard</el-radio-button>
         </el-radio-group>
         <el-button :disabled="!ready || saving" @click="exportScript">Exportar guion</el-button>
+        <el-button :disabled="!ready" @click="openCodex()">Codex · ChatGPT</el-button>
         <el-button type="primary" :disabled="!ready || !dirty" :loading="saving" @click="saveFromButton">Guardar</el-button>
       </div>
     </header>
@@ -53,7 +55,7 @@
           </template>
         </aside>
       </div>
-      <div v-else class="charactersView">
+      <div v-else-if="view === 'characters'" class="charactersView">
         <section class="charactersColumn" aria-label="Reparto">
           <div class="columnHeading"><h2>Personajes</h2><el-button @click="addCharacter">Añadir personaje</el-button></div>
           <div class="characterGrid">
@@ -70,6 +72,7 @@
             <label>Nombre<input v-model="selectedCharacter.name" aria-label="Nombre del personaje" /></label>
             <label>Rol<input v-model="selectedCharacter.role" aria-label="Rol del personaje" /></label>
             <label>Retrato<input type="file" accept="image/png,image/jpeg,image/webp" :disabled="uploading" aria-label="Retrato del personaje" @change="uploadPortrait" /></label>
+            <el-button @click="openCodex('portrait')">Generar retrato con Codex</el-button>
             <label>Qué quiere<textarea v-model="selectedCharacter.want" rows="3" aria-label="Deseo del personaje" /></label>
             <label>Conflicto<textarea v-model="selectedCharacter.conflict" rows="3" aria-label="Conflicto del personaje" /></label>
             <label>Arco<textarea v-model="selectedCharacter.arc" rows="3" aria-label="Arco del personaje" /></label>
@@ -78,8 +81,33 @@
           </template>
         </aside>
       </div>
-      <footer class="storyStatus" role="status"><span>{{ saving ? 'Guardando…' : dirty ? 'Cambios sin guardar' : 'Guardado' }}</span><span>{{ story.beats.length }} beats · {{ story.characters.length }} personajes</span></footer>
+      <div v-else class="charactersView">
+        <section class="charactersColumn" aria-label="Planos del storyboard">
+          <div class="columnHeading"><h2>Storyboard</h2><el-button @click="addShot">Añadir plano</el-button></div>
+          <p v-if="!story.shots.length">Añadí un plano o pedile a Codex que desglose el guion.</p>
+          <div class="shotGrid"><button v-for="(shot, index) in story.shots" :key="shot.id" class="shotCard" :class="{ selected: selectedShotId === shot.id }" @click="selectedShotId = shot.id"><img v-if="portraitUrls[shot.image]" :src="portraitUrls[shot.image]" :alt="shot.title" /><span v-else class="emptyFrame">{{ index + 1 }}</span><strong>{{ index + 1 }}. {{ shot.title || 'Plano sin título' }}</strong><small>{{ shot.framing }} · {{ shot.duration }} s</small><p>{{ shot.description }}</p></button></div>
+        </section>
+        <aside class="characterInspector" aria-label="Ficha del plano">
+          <template v-if="selectedShot">
+            <div class="columnHeading"><h2>Plano</h2><el-button text type="danger" @click="removeShot">Eliminar plano</el-button></div>
+            <label>Título<input v-model="selectedShot.title" aria-label="Título del plano" /></label>
+            <label>Beat<select v-model="selectedShot.beatId" aria-label="Beat del plano"><option v-for="beat in story.beats" :key="beat.id" :value="beat.id">{{ beat.title }}</option></select></label>
+            <label>Acción<textarea v-model="selectedShot.description" rows="3" aria-label="Acción del plano" /></label>
+            <label>Encuadre<input v-model="selectedShot.framing" aria-label="Encuadre del plano" /></label>
+            <label>Cámara<input v-model="selectedShot.camera" aria-label="Cámara del plano" /></label>
+            <label>Duración<el-input-number v-model="selectedShot.duration" :min="1" :max="3600" aria-label="Duración del plano" /></label>
+            <label>Prompt visual<textarea v-model="selectedShot.imagePrompt" rows="4" aria-label="Prompt visual del plano" /></label>
+            <label>Personajes<el-select v-model="selectedShot.characterIds" multiple aria-label="Personajes del plano"><el-option v-for="character in story.characters" :key="character.id" :label="character.name" :value="character.id" /></el-select></label>
+            <el-button @click="openCodex('sketch')">Generar boceto con Codex</el-button>
+            <el-button v-if="selectedShot.image" @click="$emit('addImage', { path: selectedShot.image, label: selectedShot.title, id: selectedShot.id, directory })">Crear nodo imagen</el-button>
+          </template>
+        </aside>
+      </div>
+      <footer class="storyStatus" role="status"><span>{{ saving ? 'Guardando…' : dirty ? 'Cambios sin guardar' : 'Guardado' }}</span><span>{{ story.beats.length }} beats · {{ story.characters.length }} personajes · {{ story.shots.length }} planos</span></footer>
     </template>
+    <el-dialog v-model="codexVisible" title="Asistente Codex · ChatGPT" width="min(960px, 96vw)" appendToBody destroyOnClose>
+      <codexPanel v-if="codexVisible" :directory="directory" :context="story" :characterId="selectedCharacterId || null" :shotId="selectedShotId || null" :initialAction="codexAction" :references="codexReferences" :appliedIds="story.appliedCodexRuns" :readImage="files.read" :beforeRun="flushSave" createImageNode @apply="applyJob" @addImage="addGeneratedImage" />
+    </el-dialog>
   </section>
 </template>
 
@@ -87,20 +115,28 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import axios from "axios";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { z } from "zod";
+import { storySchema, parseStory, emptyStory, applyCodexProposal, type CodexJob, type CodexRun } from "@toonflow/story";
+import codexPanel from "@toonflow/node-shared/codexPanel";
 import useWorkspaceFiles, { type TextSnapshot } from "@/lib/workspaceFiles";
 
-const props = defineProps<{ directory: string }>();
+const props = defineProps<{ directory: string; referenceImages?: { path: string; label: string }[] }>();
+const emit = defineEmits<{ addImage: [image: { path: string; label: string; id: string; directory: string }] }>();
 const files = useWorkspaceFiles(props.directory);
-const characterSchema = z.strictObject({ id: z.uuid(), name: z.string(), role: z.string(), want: z.string(), conflict: z.string(), arc: z.string(), relations: z.string(), notes: z.string(), portrait: z.string().regex(/^(?:|assets\/characters\/[a-f0-9-]+\.(?:png|jpg|webp))$/) });
-const beatSchema = z.strictObject({ id: z.uuid(), title: z.string(), scene: z.string(), script: z.string(), duration: z.number().int().min(1).max(3600), color: z.string().regex(/^#[a-f\d]{6}$/i), causeId: z.union([z.uuid(), z.literal("")]), characterIds: z.array(z.uuid()) });
-const storySchema = z.strictObject({ format: z.literal("editorCreativoStory"), version: z.literal(1), title: z.string(), logline: z.string(), beats: z.array(beatSchema).max(10000), characters: z.array(characterSchema).max(1000) }).superRefine((value, context) => {
-  const beatIds = new Set(value.beats.map(beat => beat.id));
-  const characterIds = new Set(value.characters.map(character => character.id));
-  if (beatIds.size !== value.beats.length || characterIds.size !== value.characters.length || value.beats.some(beat => beat.causeId === beat.id || beat.causeId && !beatIds.has(beat.causeId) || beat.characterIds.some(id => !characterIds.has(id)))) context.addIssue({ code: "custom", message: "La historia tiene identificadores repetidos o vínculos inválidos." });
-});
-type Story = z.infer<typeof storySchema>;
-const story = reactive<Story>({ format: "editorCreativoStory", version: 1, title: "", logline: "", beats: [], characters: [] });
+const story = reactive(emptyStory());
+const codexVisible = ref(false);
+const codexAction = ref<CodexRun["action"]>("structure");
+const applying = ref(false);
+const selectedShotId = ref("");
+const selectedShot = computed(() => story.shots.find(shot => shot.id === selectedShotId.value));
+const codexReferences = computed(() => [...new Map([
+  ...story.characters.filter(character => character.portrait).map(character => ({ path: character.portrait, label: `Retrato de ${character.name}` })),
+  ...story.shots.filter(shot => shot.image).map(shot => ({ path: shot.image, label: `Boceto: ${shot.title}` })),
+  ...(props.referenceImages ?? []),
+].map(image => [image.path, image])).values()]);
+function openCodex(action?: CodexRun["action"]) {
+  codexAction.value = action || (view.value === "characters" ? "character" : view.value === "storyboard" ? selectedShot.value ? "sketch" : "storyboard" : "structure");
+  codexVisible.value = true;
+}
 const ready = ref(false);
 const saving = ref(false);
 const uploading = ref(false);
@@ -124,13 +160,14 @@ onMounted(async () => {
   try {
     try {
       snapshot = await files.readTextSnapshot(fileName, { maxBytes: 20 * 1024 * 1024 });
-      Object.assign(story, storySchema.parse(JSON.parse(snapshot.text)));
+      Object.assign(story, parseStory(JSON.parse(snapshot.text)));
     } catch (error) {
       if (!axios.isAxiosError(error) || error.response?.status !== 404) throw error;
     }
     savedText.value = serialize();
     selectedBeatId.value = story.beats[0]?.id ?? "";
     selectedCharacterId.value = story.characters[0]?.id ?? "";
+    selectedShotId.value = story.shots[0]?.id ?? "";
     ready.value = true;
   } catch (error) { failure.value = "No se pudo abrir story.json. El archivo se conserva sin cambios. " + errorMessage(error); }
 });
@@ -180,16 +217,20 @@ function moveBeat(direction: number) {
 }
 async function removeBeat() {
   const id = selectedBeatId.value;
-  if (!await ElMessageBox.confirm("Se eliminará este beat del guion y de la estructura.", "Eliminar beat", { type: "warning", confirmButtonText: "Eliminar", cancelButtonText: "Cancelar" }).then(() => true, () => false)) return;
+  const relatedShots = story.shots.filter(shot => shot.beatId === id).length;
+  if (!await ElMessageBox.confirm(`Se eliminará este beat del guion y de la estructura.${relatedShots ? ` También se quitarán sus ${relatedShots} planos asociados; sus imágenes se conservarán.` : ""}`, "Eliminar beat", { type: "warning", confirmButtonText: "Eliminar", cancelButtonText: "Cancelar" }).then(() => true, () => false)) return;
   story.beats = story.beats.filter(beat => beat.id !== id);
   for (const beat of story.beats) if (beat.causeId === id) beat.causeId = "";
+  story.shots = story.shots.filter(shot => shot.beatId !== id);
+  selectedShotId.value = story.shots[0]?.id ?? "";
   selectedBeatId.value = story.beats[0]?.id ?? "";
 }
 async function removeCharacter() {
   const id = selectedCharacterId.value;
-  if (!await ElMessageBox.confirm("Se quitará el personaje de la historia y de sus beats. Sus imágenes se conservarán.", "Eliminar personaje", { type: "warning", confirmButtonText: "Eliminar", cancelButtonText: "Cancelar" }).then(() => true, () => false)) return;
+  if (!await ElMessageBox.confirm("Se quitará el personaje de la historia y de sus beats y planos. Sus imágenes se conservarán.", "Eliminar personaje", { type: "warning", confirmButtonText: "Eliminar", cancelButtonText: "Cancelar" }).then(() => true, () => false)) return;
   story.characters = story.characters.filter(character => character.id !== id);
   for (const beat of story.beats) beat.characterIds = beat.characterIds.filter(characterId => characterId !== id);
+  for (const shot of story.shots) shot.characterIds = shot.characterIds.filter(characterId => characterId !== id);
   selectedCharacterId.value = story.characters[0]?.id ?? "";
 }
 async function uploadPortrait(event: Event) {
@@ -208,7 +249,7 @@ async function uploadPortrait(event: Event) {
   } catch (error) { ElMessage.error(errorMessage(error)); }
   finally { uploading.value = false; input.value = ""; }
 }
-watch(() => story.characters.map(character => character.portrait).filter(Boolean), paths => {
+watch(() => [...story.characters.map(character => character.portrait), ...story.shots.map(shot => shot.image)].filter(Boolean), paths => {
   for (const [path, reference] of portraitReferences) if (!paths.includes(path)) { reference.release(); portraitReferences.delete(path); delete portraitUrls[path]; }
   for (const path of paths) if (!portraitReferences.has(path)) {
     const reference = files.acquireUrl(path); portraitReferences.set(path, reference);
@@ -219,8 +260,35 @@ async function exportScript() {
   try {
     await flushSave();
     const text = [`# ${story.title || "Guion"}`, story.logline, "## Personajes", ...story.characters.map(character => `### ${character.name}\n${character.role}\n\nDeseo: ${character.want}\n\nConflicto: ${character.conflict}\n\nArco: ${character.arc}\n\nRelaciones: ${character.relations}\n\n${character.notes}`), "## Guion", ...story.beats.map((beat, index) => `### ${index + 1}. ${beat.title}\n${beat.scene} · ${beat.duration} s\n\n${beat.script}`)].join("\n\n");
-    const path = `guion${Date.now()}.md`; await files.write(path, text, true); ElMessage.success(`Guion exportado en ${path}`);
+    const storyboard = story.shots.length ? "\n\n## Storyboard\n\n" + story.shots.map((shot, index) => `### ${index + 1}. ${shot.title}\n${shot.framing} · ${shot.camera} · ${shot.duration} s\n\n${shot.description}\n\n${shot.image ? `![${shot.title}](${shot.image})\n\n` : ""}Prompt visual: ${shot.imagePrompt}`).join("\n\n") : "";
+    const path = `guion${Date.now()}.md`; await files.write(path, text + storyboard, true); ElMessage.success(`Guion exportado en ${path}`);
   } catch (error) { ElMessage.error(errorMessage(error)); }
+}
+function addShot() {
+  if (!story.beats.length) { ElMessage.warning("Añadí un beat antes de crear un plano."); return; }
+  const shot = { id: crypto.randomUUID(), beatId: selectedBeatId.value || story.beats[0]!.id, title: "", description: "", framing: "", camera: "", duration: 5, imagePrompt: "", characterIds: [] as string[], image: "" };
+  story.shots.push(shot); selectedShotId.value = shot.id;
+}
+async function removeShot() {
+  const id = selectedShotId.value;
+  if (!await ElMessageBox.confirm("Se quitará este plano del storyboard. Su imagen se conservará.", "Eliminar plano", { confirmButtonText: "Eliminar", cancelButtonText: "Cancelar" }).then(() => true, () => false)) return;
+  story.shots = story.shots.filter(shot => shot.id !== id); selectedShotId.value = story.shots[0]?.id ?? "";
+}
+async function applyJob(job: CodexJob) {
+  if (applying.value) return;
+  const before = JSON.parse(JSON.stringify(story));
+  applying.value = true;
+  try {
+    Object.assign(story, applyCodexProposal(before, job));
+    await flushSave();
+    selectedCharacterId.value ||= story.characters[0]?.id ?? "";
+    selectedShotId.value ||= story.shots[0]?.id ?? "";
+    ElMessage.success("Propuesta aplicada y guardada.");
+  } catch (error) { Object.assign(story, before); ElMessage.error(errorMessage(error)); }
+  finally { applying.value = false; }
+}
+function addGeneratedImage(job: CodexJob) {
+  if (job.result?.kind === "image") emit("addImage", { path: job.result.path, label: `${story.title || 'Imagen'} · ${job.action === 'portrait' ? 'Retrato' : 'Boceto'}`, id: job.id, directory: props.directory });
 }
 function preventUnload(event: BeforeUnloadEvent) { if (dirty.value || saving.value || uploading.value) { event.preventDefault(); event.returnValue = ""; } }
 window.addEventListener("beforeunload", preventUnload);
@@ -239,6 +307,7 @@ defineExpose({ flushSave, ready, dirty });
   .storyHeader { display: flex; gap: 24px; align-items: flex-start; padding-bottom: 16px; border-bottom: 1px solid var(--el-border-color); }
   .storyIdentity { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(240px, 2fr); gap: 16px; flex: 1; label { margin: 0; } }
   .storyActions { display: flex; gap: 8px; align-items: flex-end; padding-top: 20px; }
+  .storyActions { flex-wrap: wrap; }
   .storyError { padding: 12px; color: var(--el-color-danger); border: 1px solid currentColor; border-radius: 6px; }
   .structureView { display: grid; grid-template-columns: minmax(220px, 0.85fr) minmax(320px, 1.4fr) minmax(260px, 0.8fr); flex: 1; min-height: 0; }
   .columnHeading { display: flex; gap: 12px; justify-content: space-between; align-items: center; margin-bottom: 18px; h2 { font-size: 16px; margin: 0; } span { font-size: 12px; color: var(--el-text-color-secondary); } }
@@ -254,6 +323,8 @@ defineExpose({ flushSave, ready, dirty });
   .inspectorActions { display: flex; flex-wrap: wrap; gap: 6px; }
   .charactersView { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(300px, 380px); flex: 1; min-height: 0; }
   .characterGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; }
+  .shotGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+  .shotCard { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid var(--el-border-color); border-radius: 8px; background: var(--el-bg-color-overlay); color: inherit; text-align: start; img, .emptyFrame { width: 100%; aspect-ratio: 16/9; object-fit: contain; border-radius: 5px; background: #202a34; } .emptyFrame { display: grid; place-items: center; color: #9db8d4; font-size: 32px; } small { color: var(--el-text-color-secondary); } p { margin: 0; line-height: 1.6; } }
   .characterCard { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 22px 14px; border: 1px solid var(--el-border-color); border-radius: 12px; background: var(--el-bg-color-overlay); color: inherit; img, .portraitInitial { width: 112px; height: 112px; border-radius: 50%; object-fit: cover; } .portraitInitial { display: grid; place-items: center; background: #29486a; color: #dbeaff; font-size: 42px; } > span:last-child { color: var(--el-text-color-secondary); font-size: 12px; } }
   .storyStatus { display: flex; justify-content: space-between; padding: 12px 4px 0; border-top: 1px solid var(--el-border-color); font-size: 11px; color: var(--el-text-color-secondary); }
   @media (max-width: 1100px) { .storyHeader { flex-direction: column; gap: 8px; } .storyIdentity { width: 100%; } .storyActions { padding-top: 0; flex-wrap: wrap; } .structureView { grid-template-columns: 1fr 1fr; overflow: auto; } .scriptColumn { display: none; } }
