@@ -13,7 +13,7 @@
             </div>
             <p class="welcomeDescription">聊聊你的故事、画面或镜头，让我们一起把想法落到画布上。</p>
             <div class="welcomeSuggestions">
-              <el-button v-for="item in welcomeSuggestions" :key="item.label" class="welcomeSuggestion" text bg :disabled="locked" :aria-label="`填入提示：${item.label}`" @click="emit('fillPrompt', item.prompt)">
+              <el-button v-for="item in welcomeSuggestions" :key="item.label" class="welcomeSuggestion" text bg :disabled="locked" :aria-label="`填入提示：${item.label}`" @click="emit('fillPrompt', translate(item.prompt))">
                 <component :is="item.icon" :size="19" aria-hidden="true" />
                 <span class="suggestionContent"><strong>{{ item.label }}</strong><span>{{ item.description }}</span></span>
                 <icon-arrow-up-right class="suggestionArrow" :size="15" aria-hidden="true" />
@@ -85,6 +85,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onUpdated, ref, watch, type ComponentPublicInstance } from "vue";
+import { translate } from "@toonflow/i18n/vue";
 import { defaultRangeExtractor, observeElementRect, useVirtualizer } from "@tanstack/vue-virtual";
 import { IconArrowDown, IconArrowFork, IconArrowUpRight, IconAtom, IconChevronDown, IconChevronRight, IconCopy, IconCornerDownRight, IconMovie, IconPencil, IconPhoto, IconTrash, IconUsersGroup, IconVector, IconX } from "@tabler/icons-vue";
 import logoUrl from "@toonflow/assets/logo.svg";
