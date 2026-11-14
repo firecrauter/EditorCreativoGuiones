@@ -53,7 +53,7 @@ export const codexJobSchema = z.strictObject({
   text: z.string().max(250000), result: codexResultSchema.nullable(), error: text, startedAt: z.number(), finishedAt: z.number().nullable(),
 });
 export type CodexJob = z.infer<typeof codexJobSchema>;
-export type CodexStatus = { authType: string | null; plan: string | null; imageGeneration: boolean; models: { id: string; label: string; isDefault: boolean }[]; limits: { name: string; usedPercent: number; resetsAt: number | null }[]; hasCredits: boolean; activeJob: string | null };
+export type CodexStatus = { authType: string | null; plan: string | null; imageGeneration: boolean; models: { id: string; label: string; isDefault: boolean; reasoningEfforts: string[]; defaultReasoningEffort: string; inputModalities: string[] }[]; limits: { name: string; usedPercent: number; resetsAt: number | null }[]; hasCredits: boolean; activeJob: string | null };
 
 export function applyCodexProposal(current: Story, job: CodexJob): Story {
   if (job.status !== "completed" || !job.result) throw new Error("El trabajo todavía no terminó correctamente.");

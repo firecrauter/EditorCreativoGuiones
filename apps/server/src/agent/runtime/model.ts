@@ -1,9 +1,11 @@
-import { InMemoryCredentialStore } from "@earendil-works/pi-ai";
+import { InMemoryCredentialStore, createProvider } from "@earendil-works/pi-ai";
 import { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import type { ThinkingLevel } from "@/lib/modelReasoning";
 import { getConfiguredModel } from "@/utils/ai";
 import { currentIdentity } from "@/utils/multiTenant/context";
 import { t } from "@/lib/i18n";
+import { providerId as codexProviderId, providerLabel } from "@/utils/codex/catalog";
+import { streamCodex } from "@/utils/codex/stream";
 
 export async function getAgentModelConfiguration(providerId: string, modelId: string, thinkingLevel?: ThinkingLevel) {
   const configured = await getConfiguredModel(providerId, modelId);
@@ -44,7 +46,16 @@ export async function createAgentModel(providerId: string, modelId: string, thin
       contextWindow: model.contextWindow, maxTokens: model.maxOutputTokens,
     }],
   });
-  if (!provider.apiKey && Object.keys(provider.headers ?? {}).length) {
+  if (providerId === codexProviderId && !configured.execution) {
+    const registered = runtime.getModel(providerId, model.id)!;
+    runtime.registerNativeProvider(createProvider({ id: codexProviderId, name: providerLabel,
+      auth: { apiKey: { name: "Sesión local de ChatGPT", resolve: async ({ signal }) => { signal.throwIfAborted(); return { auth: {}, source: "Codex CLI · ChatGPT" }; } } },
+      models: [{ ...registered, compat: undefined, api: "codex-cli" }], api: {
+        stream: (requestModel, context, options) => streamCodex(requestModel, context, options, configured.thinkingLevel === "off" ? "none" : undefined),
+        streamSimple: (requestModel, context, options) => streamCodex(requestModel, context, options, configured.thinkingLevel === "off" ? "none" : undefined),
+      },
+    }));
+  } else if (!provider.apiKey && Object.keys(provider.headers ?? {}).length) {
     // ACT: SDK 配置接口不解析无密钥的附加头鉴权；复用模型定义，仅提供本次配置的原始请求头。
     const registered = runtime.getProvider(providerId)!;
     runtime.registerNativeProvider({

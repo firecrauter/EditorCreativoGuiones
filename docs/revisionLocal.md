@@ -80,3 +80,11 @@ Los tipos de servidor, web, historia compartida, componentes compartidos y nodo 
 Evidencia adicional privada: `localRuntime/codexFlowResults.json`, `codexHttpResults.json`, `codexExportResults.json`, `codexFinalTypecheck.log`, `codexLastTypecheck.log`, `codexLastWebTypecheck.log`, `codexDependencyAudit.json`, `codexVerifiedAntivirus.log` y `primerCortoCodex.zip`. La copia anterior del ejemplo está en `work/codexExampleBefore20261113223432/`.
 
 No se probaron cancelación durante una imagen en curso, falta real de cupo, cambio de cuenta en pleno turno ni otros sistemas operativos. Las funciones de video, audio, colaboración y proveedores externos siguen fuera de esta prueba. La guía de Codex detalla el uso, la protección frente a conflictos y las limitaciones de continuidad visual.
+
+## Actualización: proveedor de Toonflow Agent
+
+El **14 de noviembre de 2026**, la versión **2.0.10-es.3** agregó **Codex CLI · ChatGPT** a los catálogos de texto y medios y a las secciones existentes de Ajustes. Se probaron ocho modelos visibles en el catálogo, inferencia de texto y herramientas con GPT-6.1-Sol, visión con GPT-6-Luna y una imagen real desde un nodo de generación ejecutado por el agente. No se configuraron claves API ni se usaron otros proveedores o créditos comprados.
+
+El ejemplo conserva idéntico `story.json` y las posiciones y salidas de sus ocho nodos originales. Tiene cuatro nodos nuevos: texto, referencia, generación y boceto. La imagen de 1672 × 941 se generó una sola vez con el retrato como referencia y quedó en el historial y la salida del nodo. Tras reiniciar y recargar se recuperaron los nodos, medios y conversación terminada, sin nueva generación. Se verificó cancelación de texto en curso, rechazo de solicitudes no locales o sin cabecera (403), modelo inexistente (400) y precio sin cotización monetaria (200, `null`).
+
+Pasaron los cinco chequeos de tipos relevantes y la compilación de servidor y web. No hay dependencias nuevas. El análisis de ClamAV de código y compilación completó **1.150 archivos, 127,61 MiB y 0 infectados**, salida 0, sin avisos de acceso o límites. No incluye un nuevo análisis completo de todas las dependencias ni de la PC. Los resultados y límites de esta etapa están en [la guía de Codex](codexIntegration.md).

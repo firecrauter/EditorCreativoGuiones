@@ -135,6 +135,11 @@ export async function createApp({
   app.use(express.json({ limit: "100mb" }));
   app.use(express.urlencoded({ extended: true, limit: "100mb" }));
   app.use("/api/desktop", desktopRequest);
+  const { assertLocalEditor } = await import("@/lib/localEditor");
+  app.use("/api", (request, _response, next) => {
+    if (request.body?.providerId === "codexCli") assertLocalEditor(request);
+    next();
+  });
 
   const router = await import("@/router");
   router.default(app);

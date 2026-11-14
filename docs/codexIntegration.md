@@ -1,6 +1,22 @@
 # Codex CLI en el Editor Creativo
 
-Integración implementada para uso personal local en **2.0.10-es.2**, sobre `codex-cli 0.163.0`. Revisión y pruebas reales: **13 de noviembre de 2026**.
+Integración para uso personal local en **2.0.10-es.3**, sobre `codex-cli 0.163.0`. El panel narrativo se probó el **13 de noviembre de 2026**; el proveedor y el Toonflow Agent, el **14 de noviembre de 2026**.
+
+## Proveedor de Toonflow: texto e imágenes
+
+**Codex CLI · ChatGPT** aparece en **Ajustes → Modelos de texto** y **Modelos de medios**, con una tarjeta que sigue la interfaz existente. No hay que añadir una URL, inventar una clave ni copiar tokens. «Conectar Codex» o «Actualizar modelos» consulta la sesión y el catálogo, sin generar contenido.
+
+En el **Toonflow Agent**, abrí el selector de modelo del cuadro de mensaje y elegí uno de Codex. Se consultan los modelos visibles que devuelve el CLI; durante la prueba fueron ocho. La lista se conserva como máximo 15 segundos y puede actualizarse desde Ajustes. Los niveles de razonamiento se limitan a los compatibles con el runtime actual de Toonflow: `low`, `medium`, `high`, `xhigh` y `max` para los modelos probados; `ultra` del CLI todavía no se ofrece en ese selector. «Default» usa el valor predeterminado informado por Codex.
+
+El agente conserva sus herramientas de lectura, escritura, lienzo, nodos y demás herramientas habilitadas en Toonflow. Los esquemas, validaciones, permisos y ejecución siguen a cargo del runtime existente. Codex elige la llamada mediante herramientas dinámicas; antes de entregarla a Toonflow se interrumpe ese muestreo del CLI. El próximo muestreo recibe la conversación y el resultado real guardado por Toonflow. Esto evita ejecutar una misma herramienta tanto en Codex como en Toonflow. Cada muestreo usa una conversación efímera; el historial visible y reabrible del agente sigue en `.agent/sessions/` del proyecto.
+
+Para imágenes, elegí **Imágenes de Codex · ChatGPT** en el selector normal del nodo de generación de imágenes. También puede elegirlo y ejecutar el nodo el agente. Usa el mismo puente de imágenes del panel narrativo y conserva el resultado en los archivos e historial normales del nodo. Se solicita una imagen por pedido, con hasta cuatro referencias del proyecto. Se pueden recuperar resultados de trabajos ya guardados sin volver a generar; un trabajo interrumpido por el cierre del servidor no se reenvía automáticamente.
+
+El agente puede pedir confirmación antes de ejecutar una generación, siguiendo sus reglas actuales. En la prueba pidió confirmar una única imagen y mostró `codexCli / codexImage`, la referencia, el prompt y el uso de la sesión de ChatGPT. No se cambió ese flujo de confirmación.
+
+Este proveedor no ofrece estimación monetaria: la consulta de precio devuelve «sin estimación», no una cotización de API. Usa el cupo compartido de la suscripción y no cambia a otro proveedor si falla. La proporción y el tamaño se trasladan como indicaciones al generador; no garantizan dimensiones exactas. No se ofrecen video, audio, máscaras ni lotes en este adaptador.
+
+El proveedor personal se restringe al editor local, con comprobación de Origin, cabecera del editor y cliente local en sus solicitudes directas. No se publica como proveedor de una instalación multiusuario. Los procesos de Codex mantienen desactivados shell, hooks, aplicaciones, subagentes y MCP heredados; el agente usa las herramientas que ofrece y valida Toonflow.
 
 ## Abrir y usar
 
@@ -38,13 +54,16 @@ Los puntos principales del código son:
 | --- | --- |
 | `apps/server/src/utils/codex/client.ts` | Descubrimiento del CLI, proceso sin shell, intercambio RPC y control de conexión. |
 | `apps/server/src/utils/codex/index.ts` | Cuenta, modelos y límites; trabajos, prompts, propuestas, imágenes e historial. |
+| `apps/server/src/utils/codex/catalog.ts` | Catálogo dinámico y proveedor local de texto y medios. |
+| `apps/server/src/utils/codex/stream.ts` | Adaptador de streaming y llamadas de herramientas al contrato del runtime de Toonflow. |
+| `apps/server/src/utils/codex/media.ts` | Generación y recuperación de imágenes mediante el puente existente y los trabajos normales de medios. |
 | `apps/server/src/routes/codex/` | Estado, envío, consulta, historial y cancelación, restringidos al editor local. |
 | `packages/story/` | Formato de historia y validación compartida de solicitudes, resultados y aplicación de propuestas. |
 | `packages/nodeShared/src/components/codexPanel.vue` | Panel reutilizado por el espacio narrativo y el nodo Imagen. |
 | `apps/web/src/pages/workspace/panels/storyPanel.vue` | Propuestas narrativas, fichas de personajes y storyboard. |
 | `packages/nodes/imageNode/src/index.vue` | Generación o edición desde el nodo y aplicación a su salida. |
 
-El proceso creativo tiene comandos de terminal, hooks, subagentes, conectores y búsqueda web desactivados. También desactiva los servidores MCP heredados para esos trabajos y rechaza solicitudes de herramientas o permisos que esta integración no ofrece. Las imágenes usan la herramienta integrada, no un script con una clave API.
+El proceso de Codex tiene comandos de terminal, hooks, subagentes, conectores y búsqueda web desactivados. También desactiva los servidores MCP heredados y rechaza solicitudes de herramientas o permisos que esta integración no ofrece. En el agente, sólo las llamadas ofrecidas por Toonflow se entregan a su runtime para ejecutarse. Las imágenes usan la herramienta integrada, no un script con una clave API.
 
 El modelo recibe el contexto enviado por el panel y las referencias seleccionadas. Su respuesta se valida antes de aplicarla. Una propuesta de texto deja de ser aplicable si cambió la historia desde el pedido. La escritura utiliza revisiones de archivo; un conflicto no sobrescribe la versión externa. Los trabajos ya aplicados se identifican para evitar aplicarlos dos veces.
 
@@ -78,3 +97,22 @@ Además se verificaron: cancelación temprana, rechazo de concurrencia y pedidos
 Los registros privados están en `localRuntime/codexFlowResults.json`, `codexHttpResults.json`, `codexFinalTypecheck.log`, `codexBuild.log` y `codexDependencyAudit.json`. Los cinco chequeos de tipos relevantes y la compilación pasaron; `bun audit` terminó con salida 0 y `{}`.
 
 No se probó una cancelación a mitad de una generación de imagen, el cambio de cuenta en pleno turno, una cuenta sin cupo ni otros sistemas operativos o versiones de CLI. La continuidad visual depende del modelo y de las referencias: no se garantiza identidad o geometría perfectas. La generación de video, voz o música por la suscripción y el animatic automático quedan fuera de esta integración.
+
+## Validación del proveedor y del agente
+
+La prueba del 14 de noviembre usó `primerCorto` y la sesión existente de ChatGPT, sin configurar claves API ni comprar créditos:
+
+- **Catálogo:** ocho modelos de texto y el modelo de imágenes aparecen en los catálogos normales y en Ajustes.
+- **Herramientas y texto:** GPT-6.1-Sol usó `read` de Toonflow para leer `story.json` y proponer una mejora en español. La conversación se recuperó en el agente desde su historial.
+- **Otro modelo y visión:** GPT-6-Luna describió correctamente el cabello oscuro y la chaqueta azul del retrato a través del endpoint normal de texto con referencia visual.
+- **Lienzo y medios desde la interfaz:** el agente leyó la historia, consultó el lienzo, creó y rellenó «Guion · Codex proveedor», configuró un nodo normal de generación con `codexCli / codexImage` y el retrato de Ana como referencia, ejecutó una única generación y creó «Boceto · Codex proveedor» con su resultado. Completó el ciclo de llamadas y resultados de herramientas, incluido el formulario de confirmación.
+- **Resultado de imagen:** PNG real de **1672 × 941**, 2.929.199 bytes, generado en 43,88 segundos con una referencia. Se conservó el original en `assets/codex/` y la salida e historial del nodo en sus ubicaciones normales.
+- **Conservación:** el ejemplo pasó de ocho a doce nodos, con dos resultados y dos nodos auxiliares de referencia y generación. Los ocho originales conservaron sus posiciones y salidas; `story.json` quedó idéntico a la copia previa.
+- **Reapertura:** tras reiniciar el servidor y recargar Chrome se recuperaron el texto, los doce nodos y las imágenes. Se reabrió la conversación terminada desde «Conversaciones anteriores» y se verificó el grupo «Codex CLI · ChatGPT» con los ocho modelos en el selector del propio agente, sin generar de nuevo.
+- **Cancelación y límites de acceso:** se detuvo una respuesta en curso con `/api/agent/stop` y se recibió «Se detuvo la generación». Un modelo inexistente devuelve 400; Origin externo, falta de cabecera y cliente no local devuelven 403. La consulta de precio de imágenes devuelve 200 y `null`, sin iniciar inferencia.
+- **Tipos y compilación:** pasaron historia compartida, componentes compartidos, nodo Imagen, servidor y web. Servidor y web compilaron. No se añadieron dependencias.
+- **Antivirus:** ClamAV analizó 1.150 archivos de código y compilación, 127,61 MiB, con cero detecciones y salida 0. Es un análisis de ese alcance, no una certificación de toda la PC.
+
+La copia previa está en `work/codexProviderBefore20261114003812/`. Los registros privados están en `localRuntime/codexProviderCatalogResults.json`, `codexProviderAgentFirst.ndjson`, `codexProviderTextVision.sse`, `codexProviderExampleResults.json`, `codexProviderHttpResults.json`, `codexProviderCancel.ndjson`, `codexProviderFinalTypes.log`, `codexProviderFinalBuild.log`, `codexProviderWebBuild.log` y `codexProviderAntivirus.log`. No se publican los proyectos, medios, conversaciones ni registros en Git.
+
+No se probaron todos los modelos individualmente, agotamiento real de cupo, cambios de cuenta, tareas simultáneas de varios agentes, compresión de una conversación larga ni cancelación de una imagen ya en generación. Las pruebas de texto, herramientas e imagen descritas sí fueron reales.

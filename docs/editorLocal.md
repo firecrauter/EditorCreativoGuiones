@@ -19,7 +19,7 @@ En un proyecto, **Historia y personajes** abre el nuevo espacio de trabajo:
 - **Estructura:** guion por beats, tarjetas, duración, color, personajes asociados y vínculo «Provocado por». La selección de un beat se comparte entre el guion, las tarjetas, la franja de duración y el inspector.
 - **Personajes:** tarjetas con retrato circular y ficha de rol, deseo, conflicto, arco, relaciones y notas.
 - **Storyboard:** fichas de planos con beat de origen, encuadre, cámara, duración, personajes, prompt visual e imagen asignada.
-- **Codex · ChatGPT:** propuestas revisables de texto y generación integrada de imágenes usando la sesión existente del CLI. También se abre desde el nodo Imagen. [Guía de uso y validación](codexIntegration.md).
+- **Codex · ChatGPT:** propuestas narrativas e imágenes con la sesión existente del CLI. Disponible también como proveedor de texto e imágenes en Ajustes, el Toonflow Agent y los nodos existentes. [Guía de uso y validación](codexIntegration.md).
 - **Guardar:** escribe `story.json` usando la API de archivos de Toonflow y sus revisiones. Una modificación externa provoca un conflicto y conserva lo escrito en pantalla.
 - **Exportar guion:** crea un Markdown nuevo dentro del proyecto. La exportación ZIP de Toonflow incluye la historia, los lienzos y los recursos.
 
@@ -76,7 +76,7 @@ Los resultados y límites concretos de la revisión están en [revisionLocal.md]
 
 ## Codex CLI
 
-La [integración con Codex CLI](codexIntegration.md) ya está implementada y probada con texto, retrato, boceto y edición desde el nodo Imagen. Las credenciales siguen gestionadas por Codex. La historia usa formato versión 2 y puede cargar el formato anterior; guardá una copia del proyecto antes de volver a una versión antigua del editor.
+La [integración con Codex CLI](codexIntegration.md) está implementada y probada con texto, retrato, boceto, edición desde el nodo Imagen y las herramientas del Toonflow Agent. El proveedor **Codex CLI · ChatGPT** se consulta desde las secciones existentes de modelos de texto y medios, sin configurar claves API. Las credenciales siguen gestionadas por Codex. La historia usa formato versión 2 y puede cargar el formato anterior; guardá una copia del proyecto antes de volver a una versión antigua del editor.
 
 ## Actualizaciones
 

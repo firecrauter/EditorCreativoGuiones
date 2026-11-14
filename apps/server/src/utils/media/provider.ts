@@ -10,6 +10,7 @@ import { z } from "zod";
 import conf from "@/utils/conf";
 import { accountProviderSchema, getAccountProvider, getAccountToken, providerSchema } from "@/utils/ai/provider";
 import type { ProviderSources } from "@/utils/channel/types";
+import { providerId as codexProviderId, mediaSource, mediaAvailable } from "@/utils/codex/catalog";
 import { convertAudio } from "@/utils/media/audioProcessor";
 import { createWorkspaceFfmpeg } from "@/utils/ffmpeg";
 import { lockWorkspaceFiles, writeWorkspaceFile } from "@/utils/workspace/files";
@@ -353,6 +354,7 @@ async function readProvider(path: string, fileName: string) {
 }
 
 export async function getMediaProvider(id: string) {
+  if (id === codexProviderId) return { ...metadata(`${codexProviderId}.ts`, mediaSource), source: mediaSource };
   if (!providerIdSchema.safeParse(id).success) invalid("供应商 ID 无效");
   const path = await directory();
   if (!path) invalid("请先在媒体模型设置中添加供应商", 404);
@@ -376,13 +378,12 @@ export async function getMediaProviderSource(fileName: string) {
 
 export async function listMediaProviders() {
   const path = await directory();
-  if (!path) return [];
-  const files = await readdir(path, { withFileTypes: true });
-  return Promise.all(files.filter(file => file.isFile() && mediaProviderFileSchema.safeParse(file.name).success)
+  const files = path ? await readdir(path, { withFileTypes: true }) : [];
+  const providers = await Promise.all(files.filter(file => file.name !== `${codexProviderId}.ts` && file.isFile() && mediaProviderFileSchema.safeParse(file.name).success)
     .sort((left, right) => left.name.localeCompare(right.name)).map(async file => {
       let current = { fileName: file.name, id: file.name.slice(0, -3), source: "", revision: "" };
       try {
-        current = await readProvider(path, file.name);
+        current = await readProvider(path!, file.name);
         return metadata(current.fileName, current.source);
       } catch (error) {
         // ACT: 元数据损坏不影响其他供应商；仍保留原文版本，允许用户明确删除。
@@ -390,6 +391,8 @@ export async function listMediaProviders() {
         return { ...file, label: current.id, version: "", readme: "", rules: [], models: [], loadError: translateMessage(error instanceof Error ? error.message : "供应商文件无法读取") };
       }
     }));
+  if (await mediaAvailable().catch(() => false)) providers.push(metadata(`${codexProviderId}.ts`, mediaSource));
+  return providers;
 }
 
 export async function addMediaProvider(source: string, signal?: AbortSignal) {

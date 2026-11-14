@@ -2,6 +2,7 @@
   <div class="providerList">
     <div class="itemList">
       <toonflowProviderCard scope="text" :provider="customProviders.find(item => item.id.toLowerCase() === 'toonflow')" />
+      <codexProviderCard scope="text" />
       <el-card v-for="item in visibleProviders" :key="item.id" class="providerItem" shadow="never">
         <div class="providerHeader">
           <div v-if="item.icon" class="providerMark" aria-hidden="true">
@@ -44,6 +45,7 @@ import { customProviders, saveSettings, type CustomProvider } from "@/stores/set
 import { IconPlus, IconSettings, IconEdit, IconTrash } from "@tabler/icons-vue";
 import { languageProviders } from "@toonflow/providers";
 import toonflowProviderCard from "../../toonflowProviderCard.vue";
+import codexProviderCard from "../../codexProviderCard.vue";
 
 defineProps<{ visible?: boolean }>();
 const addProviderDialog = shallowRef<Component>();
@@ -52,7 +54,7 @@ const providerDialogVisible = ref(false);
 const customProviderDialogVisible = ref(false);
 const editingProvider = ref<CustomProvider>();
 const deletingId = ref("");
-const visibleProviders = computed(() => customProviders.value.filter(item => item.id.toLowerCase() !== "toonflow"));
+const visibleProviders = computed(() => customProviders.value.filter(item => item.id.toLowerCase() !== "toonflow" && item.id !== "codexCli"));
 
 function getProviderVersion(provider: CustomProvider) {
   const version = languageProviders.find(item => item.id.toLowerCase() === provider.id.toLowerCase())?.version ?? provider.version;

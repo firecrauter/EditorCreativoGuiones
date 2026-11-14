@@ -35,7 +35,8 @@ export async function getStatus(): Promise<CodexStatus> {
     if (typeof window?.usedPercent === "number") windows.push({ name: `${bucket.limitName || bucket.limitId || "Codex"} · ${name === "primary" ? "cupo principal" : "cupo adicional"}`, usedPercent: window.usedPercent, resetsAt: window.resetsAt ?? null });
   }
   return { authType: account.type, plan: account.planType ?? null, imageGeneration: capabilities.imageGeneration === true,
-    models: (modelList.data ?? []).map((model: any) => ({ id: model.id, label: model.displayName || model.id, isDefault: model.isDefault === true })),
+    models: (modelList.data ?? []).filter((model: any) => !model.hidden).map((model: any) => ({ id: model.id, label: model.displayName || model.id, isDefault: model.isDefault === true,
+      reasoningEfforts: (model.supportedReasoningEfforts ?? []).map((effort: any) => effort.reasoningEffort), defaultReasoningEffort: model.defaultReasoningEffort || "medium", inputModalities: model.inputModalities ?? ["text", "image"] })),
     limits: windows, hasCredits: buckets.some(bucket => bucket?.credits?.hasCredits === true), activeJob };
 }
 

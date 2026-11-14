@@ -13,6 +13,8 @@ import { readDocument } from "@/utils/documents";
 import { getConfiguredProviders, getModelLimits, getModelReasoning, getProviderBaseUrl, providerSchema } from "@/utils/ai/provider";
 import { modelGateway, requireDirectModelAccess } from "@/utils/multiTenant/gateway";
 import { createBillingUsageTracker } from "@/utils/ai/billingUsage";
+import { providerId as codexProviderId, textProvider } from "@/utils/codex/catalog";
+import { streamCodex } from "@/utils/codex/stream";
 
 export { fetchProviderModels } from "@/utils/ai/models";
 export { accountProviderSchema, getAccountProvider, getAccountToken, getConfiguredProviders, getModelLimits, getModelReasoning, providerSchema, reasoningEffortsSchema } from "@/utils/ai/provider";
@@ -20,7 +22,8 @@ export { accountProviderSchema, getAccountProvider, getAccountToken, getConfigur
 export async function getConfiguredModel(providerId: string, modelId: string) {
   const execution = modelGateway.enabled() ? await modelGateway.resolve("text", providerId, modelId) : undefined;
   const resolved = execution?.upstream;
-  const parsed = providerSchema.safeParse(resolved?.provider ?? getConfiguredProviders().find(item => item?.id === providerId));
+  const localCodex = providerId === codexProviderId && !modelGateway.enabled();
+  const parsed = providerSchema.safeParse(localCodex ? await textProvider() : resolved?.provider ?? getConfiguredProviders().find(item => item?.id === providerId));
   if (!parsed.success) {
     const official = providerId.toLowerCase() === "toonflow";
     throw Object.assign(new Error(official ? "请先登录 Toonflow 账号并刷新供应商" : "请先在设置中配置模型供应商"), { status: official ? 401 : 400 });
@@ -42,7 +45,8 @@ export type ConfiguredModel = Awaited<ReturnType<typeof getConfiguredModel>>;
 
 export async function listAiModels() {
   if (modelGateway.enabled()) return modelGateway.catalog(["text"]);
-  return getConfiguredProviders().flatMap(item => {
+  const codex = await textProvider().catch(() => undefined);
+  return [...getConfiguredProviders().filter(item => item?.id !== codexProviderId), ...(codex ? [codex] : [])].flatMap(item => {
     const parsed = providerSchema.extend({ id: z.string().min(1), label: z.string() }).safeParse(item);
     if (!parsed.success) return [];
     const provider = parsed.data;
@@ -157,6 +161,23 @@ export function streamAi(
     contextWindow: configuredModel.contextWindow,
     maxTokens: configuredModel.maxOutputTokens,
   };
+  if (configured.publicProviderId === codexProviderId && !configured.execution) {
+    requireDirectModelAccess();
+    const messages = structuredClone(context.messages);
+    const firstUser = messages.find(item => item.role === "user");
+    if (firstUser && references.length) {
+      const content = typeof firstUser.content === "string" ? [{ type: "text" as const, text: firstUser.content }] : firstUser.content;
+      for (const reference of references) {
+        if (reference.dataType === "STRING") content.push({ type: "text", text: reference.value });
+        else if (reference.dataType === "IMAGE") { const separator = reference.value.indexOf(","); content.push({ type: "image", mimeType: reference.value.slice(5, reference.value.indexOf(";")), data: reference.value.slice(separator + 1) }); }
+        else throw new Error("Este proveedor de Codex admite texto e imágenes, no video adjunto.");
+      }
+      firstUser.content = content;
+    }
+    return Object.assign(streamCodex({ ...model, provider: codexProviderId, api: "codex-cli" }, { ...context, messages }, { signal }), {
+      billingUsage: async () => undefined, upstreamSubmitted: () => false, upstreamRejected: () => false,
+    });
+  }
   const usageTracker = createBillingUsageTracker(provider.protocol);
   const files = createFileTransport({ ...provider, apiUrl: baseUrl }, {
     signal, ...(configured.route ? { fetch: usageTracker.fetch(globalThis.fetch) } : {}),

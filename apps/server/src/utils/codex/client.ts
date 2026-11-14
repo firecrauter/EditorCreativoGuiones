@@ -10,6 +10,7 @@ export class CodexClient {
   private process: ChildProcessWithoutNullStreams;
   private pending = new Map<number, Pending>();
   private listeners = new Set<(message: Message) => void>();
+  private requestHandlers = new Set<(message: Message) => boolean>();
   private nextId = 1;
   stopped = false;
 
@@ -32,6 +33,7 @@ export class CodexClient {
         if (message.error) pending.reject(new Error(`Codex rechazó ${message.error.code ?? "la solicitud"}: ${message.error.message?.slice(0, 1000) ?? "error del protocolo"}`));
         else pending.resolve(message.result);
       } else if (message.method && message.id !== undefined) {
+        if ([...this.requestHandlers].some(handler => handler(message))) return;
         // Creative jobs have no permission to execute commands, change files or call connected apps.
         const result = message.method === "item/permissions/requestApproval" ? { permissions: {}, scope: "turn" }
           : /requestApproval$/.test(message.method) ? { decision: "decline" } : undefined;
@@ -59,8 +61,9 @@ export class CodexClient {
     });
   }
   subscribe(listener: (message: Message) => void) { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
+  onRequest(handler: (message: Message) => boolean) { this.requestHandlers.add(handler); return () => { this.requestHandlers.delete(handler); }; }
   async initialize() {
-    await this.request("initialize", { clientInfo: { name: "editorCreativo", version: "0.2.0" } });
+    await this.request("initialize", { clientInfo: { name: "editorCreativo", version: "0.3.0" }, capabilities: { experimentalApi: true } });
     this.send({ method: "initialized", params: {} });
   }
   close() { this.process.stdin.end(); const timer = setTimeout(() => { if (!this.stopped) this.process.kill(); }, 1000); timer.unref(); }

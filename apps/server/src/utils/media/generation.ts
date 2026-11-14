@@ -11,6 +11,8 @@ import { lockWorkspaceFiles, resolveWorkspacePath, writeWorkspaceFile } from "@/
 import { beginGeneration, getProviderPrice } from "@/utils/media/billing";
 import { detectMimeType, readPriceReference } from "@/utils/media/priceReference";
 import { modelGateway } from "@/utils/multiTenant/gateway";
+import { providerId as codexProviderId } from "@/utils/codex/catalog";
+import { bindMediaProvider } from "@/utils/codex/media";
 
 const maxMediaSize = 100 * 1024 * 1024;
 export type MediaGenerationCheckpoint = {
@@ -209,7 +211,7 @@ async function configuredProvider(request: MediaGenerationRequest, mediaType: "i
   if (!resume && !info.models.some(model => model.id === request.modelId && model.type === mediaType)) invalid("所选媒体模型不存在或类型不匹配，请重新选择");
   const configurations = record(conf.get("settings", {}).mediaProviderConfigs);
   const provider = await loadMediaProviderSource(info.source, record(configurations[info.id]), signal, undefined, directory, saveTaskData);
-  return { provider, request };
+  return { provider: info.id === codexProviderId ? bindMediaProvider(provider, directory) : provider, request };
 }
 
 async function preparePriceRequest(directory: string | undefined, mediaType: "image" | "video" | "audio", request: MediaGenerationRequest, signal?: AbortSignal) {
