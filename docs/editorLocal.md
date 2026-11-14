@@ -74,7 +74,7 @@ Los resultados y límites concretos de la revisión están en [revisionLocal.md]
 
 ## Siguiente etapa
 
-Revisar con el usuario la integración con **Codex CLI** y qué permite usar su suscripción de ChatGPT. La [evaluación preliminar](codexIntegration.md) describe la opción de `app-server` y un primer alcance. No se implementó un adaptador, no se inició sesión ni se reutilizaron credenciales de la suscripción en proveedores de Toonflow.
+La [revisión de integración con Codex CLI](codexIntegration.md) confirma el acceso existente por ChatGPT, la conexión local al protocolo y la capacidad declarada de imágenes, sin ejecutar inferencia. Describe cómo incorporar propuestas de guion, personajes y storyboards. El adaptador todavía no está implementado; las credenciales siguen gestionadas por Codex.
 
 ## Actualizaciones
 
