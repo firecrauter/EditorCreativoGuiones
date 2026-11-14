@@ -2,13 +2,13 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { detectLocale, msg, normalizeLocale, translate } from "@toonflow/i18n";
 import type { Locale, MessageDescriptor } from "@toonflow/i18n";
 import type { RequestHandler } from "express";
-import { ar, bn, en, fa, hi, id, ja, ko, ms, ru, ta, th, tr, ur, vi, zhCN, zhTW } from "zod/locales";
+import { ar, bn, en, es, fa, hi, id, ja, ko, ms, ru, ta, th, tr, ur, vi, zhCN, zhTW } from "zod/locales";
 import { z } from "zod";
 
 const requestLocale = new AsyncLocalStorage<Locale>();
 // ACT: 已安装的 Zod 没有 fil/te/mr/pa，参数校验提示回退英文；应用消息仍使用所选语言。
 const validationLocales = {
-  "zh-CN": zhCN(), "zh-TW": zhTW(), en: en(), ja: ja(), ru: ru(), vi: vi(), th: th(), ko: ko(), hi: hi(),
+  "zh-CN": zhCN(), "zh-TW": zhTW(), en: en(), es: es(), ja: ja(), ru: ru(), vi: vi(), th: th(), ko: ko(), hi: hi(),
   id: id(), ms: ms(), fil: en(), bn: bn(), ur: ur(), ta: ta(), te: en(), mr: en(), pa: en(), ar: ar(), fa: fa(), tr: tr(),
 };
 let localeFallback = () => detectLocale([Intl.DateTimeFormat().resolvedOptions().locale]);

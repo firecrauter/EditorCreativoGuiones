@@ -27,6 +27,7 @@
     </keep-alive>
     <workspaceMenu class="workspaceMenu" @openSettings="settingsVisible = true" />
     <div class="workspaceTools">
+      <el-button class="storyButton" size="small" @click="storyVisible = true">Historia y personajes</el-button>
       <el-segmented :modelValue="activePanel" class="panelSwitcher" :options="panelOptions" size="small" aria-label="切换面板" @change="switchPanel">
         <template #default="{ item }">
           <span class="panelOption">
@@ -112,6 +113,9 @@
     </div>
     <floatingAgent v-model="agentVisible" :inert="workspaceStore.projectLoadingVisible" @resize="agentWidth = $event" />
     <settings v-model="settingsVisible" />
+    <el-dialog v-model="storyVisible" title="Historia y personajes" fullscreen destroyOnClose :beforeClose="closeStory">
+      <storyPanel v-if="storyVisible && workspaceStore.project" :key="workspaceStore.project.directory" ref="storyPanelRef" :directory="workspaceStore.project.directory" />
+    </el-dialog>
     <el-dialog v-model="contactVisible" :title="contactInfo.title" width="min(360px, calc(100vw - 32px))" alignCenter appendToBody>
       <div class="contactContent">
         <q-r-code
@@ -148,6 +152,14 @@ import workspaceMenu from "./components/workspaceMenu.vue";
 import floatingAgent from "./components/floatingAgent.vue";
 
 const documentPanel = defineAsyncComponent(() => import("./panels/document/index.vue"));
+const storyPanel = defineAsyncComponent(() => import("./panels/storyPanel.vue"));
+const storyVisible = ref(false);
+const storyPanelRef = ref<InstanceType<typeof storyPanel>>();
+
+async function closeStory(done: () => void) {
+  try { await storyPanelRef.value?.flushSave(); done(); }
+  catch (error) { ElMessage.error(error instanceof Error ? error.message : "No se pudo guardar la historia."); }
+}
 
 const activePanel = ref<"canvas" | "document">("canvas");
 const selectedTool = ref<"move" | "hand">("move");
@@ -267,6 +279,7 @@ registerWorkspaceControl({
 });
 
 async function flushSave() {
+  await storyPanelRef.value?.flushSave();
   await documentPanelRef.value?.flushSave();
   await canvasPanelRef.value?.flushSave();
 }
@@ -410,6 +423,15 @@ function saveDocumentNode(directory: string, canvasPath: string, nodeId: string,
     width: calc(100% - var(--agentWidth, 0px));
     container: workspaceTools / inline-size;
     pointer-events: none;
+
+    .storyButton {
+      position: absolute;
+      top: 15px;
+      left: calc(50% + 115px);
+      z-index: 5;
+      min-height: 28px;
+      pointer-events: auto;
+    }
 
     .panelSwitcher {
       --el-border-radius-base: var(--ui-radius-large);

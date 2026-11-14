@@ -8,8 +8,8 @@
     "./videoPlayer": "./src/components/videoPlayer.vue"
   },
   "scripts": {
-    "build": "vite build",
-    "dev": "vite build --watch",
+    "build": "bun --bun vite build",
+    "dev": "bun --bun vite build --watch",
     "typecheck": "vue-tsc --noEmit"
   },
   "peerDependencies": {

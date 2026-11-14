@@ -6,9 +6,9 @@
     "./browserCapabilities": "./src/lib/browserCapabilities.ts"
   },
   "scripts": {
-    "dev": "vite --host",
-    "build": "vite build",
-    "preview": "vite preview",
+    "dev": "bun --bun vite --host 127.0.0.1",
+    "build": "bun --bun vite build",
+    "preview": "bun --bun vite preview",
     "typecheck": "vue-tsc"
   },
   "dependencies": {
@@ -73,6 +73,7 @@
     "vue": "^3.5.42",
     "vue-router": "^5.3.1",
     "vue-stream-markdown": "1.1.0",
+    "zod": "^4.6.7",
     "x-sender": "^1.4.6"
   },
   "devDependencies": {

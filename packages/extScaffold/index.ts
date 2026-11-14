@@ -5,6 +5,7 @@ import { defineConfig, loadConfigFromFile } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { z } from "zod";
 import { defineExt, type ExtDefinition } from "./src/runtime.ts";
+import { spanishPlugin } from "@toonflow/i18n/spanishPlugin";
 
 const tiptapGlobals = {
   "@tiptap/core": "toonflowTiptapHost.core",
@@ -39,6 +40,7 @@ export function createExtConfig(config: ExtMetadata, configUrl: string) {
   return defineConfig({
     root,
     plugins: [
+      spanishPlugin(),
       vue(),
       {
         name: "extBundle",

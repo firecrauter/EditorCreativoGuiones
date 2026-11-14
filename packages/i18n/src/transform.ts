@@ -18,7 +18,7 @@ const displayProperties = new Set([
 const displayName = /^(?:labels?|titles?|descriptions?|menus?|tabs?|options?|columns?|steps?|sections?|modes?|types?|colors?|levels?|rules?|fields?|buttons?|handles?|features?|shortcuts?|categories|category|groups?|actions?|formats?|sorts?|contacts?|corners?|toolbar)$/i;
 const excludedName = /(?:prompt|instruction|rawCode|sourceCode|systemMessage)/i;
 const hasChinese = (value: string) => /[\u3400-\u9fff]/.test(value);
-const quote = (value: string) => JSON.stringify(value).replaceAll("<", "\\u003c").replaceAll(">", "\\u003e").replaceAll("{", "\\u007b").replaceAll("}", "\\u007d");
+const quote = (value: string) => JSON.stringify(value).replaceAll("&", "\\u0026").replaceAll("<", "\\u003c").replaceAll(">", "\\u003e").replaceAll("{", "\\u007b").replaceAll("}", "\\u007d");
 const attributeExpression = (value: string) => value.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;");
 
 function propertyName(node: ObjectProperty | Node): string | undefined {
@@ -45,12 +45,13 @@ function isDisplayProperty(node: ObjectProperty, parent: ObjectExpression, ances
   if (!displayProperties.has(name)) return false;
   if (/ButtonText$|^(?:groupLabel|placeholder|emptyText|loadingText|activeText|inactiveText|tooltip|inputErrorMessage|aria-label)$/.test(name)) return true;
   const siblings = parent.properties.flatMap((property) => property.type === "ObjectProperty" ? [propertyName(property)] : []);
+  if (name === "label" && siblings.includes("type") && siblings.includes("dataType")) return true;
   if (name === "message") return siblings.some((key) => key === "trigger" || key === "required" || key === "validator");
   return bindingName.replace(/([a-z])([A-Z])/g, "$1 $2").split(" ").some((part) => displayName.test(part))
     || siblings.some((key) => ["icon", "component", "onClick", "dataKey"].includes(key ?? ""));
 }
 
-function analyze(source: string, id: string) {
+function analyze(source: string, id: string, catalog?: Record<string, string>) {
   const output = new MagicString(source);
   const messages = new Set<string>();
   const replacements: [number, number][] = [];
@@ -63,6 +64,15 @@ function analyze(source: string, id: string) {
   };
   const translate = (message: string, values: string[] = []) => {
     messages.add(message);
+    if (catalog) {
+      const text = catalog[message] ?? message;
+      if (!values.length) return quote(text);
+      const parts = text.split(/(\{\d+\})/g).map(part => {
+        const match = /^\{(\d+)\}$/.exec(part);
+        return match && values[Number(match[1])] !== undefined ? `(${values[Number(match[1])]})` : quote(part);
+      });
+      return `[${parts.join(", ")}].join("")`;
+    }
     const parameters = values.length ? `, { ${values.map((value, index) => `${index}: (${value})`).join(", ")} }` : "";
     return `${translateName}(${quote(message)}${parameters})`;
   };
@@ -274,14 +284,14 @@ function analyze(source: string, id: string) {
     if (errors.length) throw new Error(`Unable to parse Vue component for i18n: ${id}: ${errors[0]}`);
     if (descriptor.template && !descriptor.template.lang) visitTemplate(descriptor.template.content, descriptor.template.loc.start.offset);
     for (const script of [descriptor.script, descriptor.scriptSetup]) if (script && !script.src) visitScript(script.content, script.loc.start.offset);
-    if (replacements.length) {
+    if (replacements.length && !catalog) {
       const importCode = `\nimport { translate as ${translateName} } from "@toonflow/i18n/vue";\n`;
       if (descriptor.scriptSetup) output.appendLeft(descriptor.scriptSetup.loc.start.offset, importCode);
       else output.prepend(`<script setup${descriptor.script?.lang ? ` lang="${descriptor.script.lang}"` : ""}>${importCode}</script>\n`);
     }
   } else {
     visitScript(source, 0);
-    if (replacements.length) output.prepend(`import { translate as ${translateName} } from "@toonflow/i18n/vue";\n`);
+    if (replacements.length && !catalog) output.prepend(`import { translate as ${translateName} } from "@toonflow/i18n/vue";\n`);
   }
   return { output, messages, changed: replacements.length > 0 };
 }
@@ -291,9 +301,9 @@ export function collectMessages(source: string, id: string): string[] {
   return [...analyze(source, id).messages];
 }
 
-export function transformSource(source: string, id: string) {
+export function transformSource(source: string, id: string, catalog?: Record<string, string>) {
   if (!/\.(?:vue|[cm]?[jt]sx?)$/.test(id) || /(?:providerPrompt|[?]|\.d\.ts$)/i.test(id)) return;
-  const result = analyze(source, id);
+  const result = analyze(source, id, catalog);
   if (!result.changed) return;
   return { code: result.output.toString(), map: result.output.generateMap({ source: id, includeContent: true, hires: true }) };
 }

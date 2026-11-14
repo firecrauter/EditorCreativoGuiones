@@ -1,3 +1,15 @@
+# Editor Creativo · Toonflow en español
+
+Fork personal de Toonflow 2.0.10 para crear historias, guiones, storyboards y recursos audiovisuales.
+
+**En esta PC:** ejecutar `iniciarEditor.cmd` y abrir [el editor local](http://127.0.0.1:3000). Los proyectos se guardan en `data/workspaces/`.
+
+Incluye un primer espacio de **Historia y personajes**, inspirado en la organización narrativa de Causality y la presentación visual de personajes de STARC.
+
+[Guía del fork y arranque](docs/editorLocal.md) · [Revisión y validación local](docs/revisionLocal.md) · [Posible integración con Codex](docs/codexIntegration.md) · [Proyecto original](https://github.com/HBAI-Ltd/Toonflow-app) · [Licencia MIT](LICENSE) · [Avisos de terceros](docs/thirdPartyNotices.md)
+
+La documentación original de Toonflow se conserva a continuación.
+
 <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=200&section=header&text=Toonflow&fontSize=90&fontColor=ffffff&animation=fadeIn&fontAlignY=50" alt="Toonflow" width="100%" />
 
 <p>

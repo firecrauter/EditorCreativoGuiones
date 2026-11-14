@@ -55,7 +55,8 @@
         :data-language="language.code"
         @click="changeLanguage(language.code)">
         <span class="cardTop">
-          <svg class="languageFlag" viewBox="0 0 32 24" aria-hidden="true"><use :href="`${languageFlags}#${flagIds[language.code]}`" /></svg>
+          <svg v-if="flagIds[language.code]" class="languageFlag" viewBox="0 0 32 24" aria-hidden="true"><use :href="`${languageFlags}#${flagIds[language.code]}`" /></svg>
+          <icon-language v-else :size="24" aria-hidden="true" />
           <span class="selectionMark" aria-hidden="true"><icon-check v-if="uiSettings.language === language.code" :size="12" stroke="3" /></span>
         </span>
         <span class="languageName" :lang="language.code" dir="auto">{{ language.name }}</span>
@@ -78,7 +79,7 @@ const visible = ref(false);
 const panel = ref<HTMLDivElement>();
 const triggerButton = ref<HTMLButtonElement>();
 const popoverPanel = ref<{ focusSelected: () => void }>();
-const flagIds: Record<Locale, string> = {
+const flagIds: Partial<Record<Locale, string>> = {
   "zh-CN": "cn", "zh-TW": "cn", en: "us", ja: "jp", ru: "ru", vi: "vn", th: "th", ko: "kr", hi: "in",
   id: "id", ms: "my", fil: "ph", bn: "bd", ur: "pk", ta: "in", te: "in", mr: "in", pa: "in", ar: "sa", fa: "ir", tr: "tr",
 };

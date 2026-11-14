@@ -2,6 +2,7 @@ import type { Locale } from "./index";
 import zhCn from "./elementPlus/zhCn.json";
 import zhTw from "./elementPlus/zhTw.json";
 import en from "./elementPlus/en.json";
+import es from "./elementPlus/es.json";
 import ja from "./elementPlus/ja.json";
 import ru from "./elementPlus/ru.json";
 import vi from "./elementPlus/vi.json";
@@ -22,5 +23,5 @@ import fa from "./elementPlus/fa.json";
 import tr from "./elementPlus/tr.json";
 
 export const elementLocales = {
-  "zh-CN": zhCn, "zh-TW": zhTw, en, ja, ru, vi, th, ko, hi, id, ms, fil, bn, ur, ta, te, mr, pa, ar, fa, tr,
+  "zh-CN": zhCn, "zh-TW": zhTw, en, es, ja, ru, vi, th, ko, hi, id, ms, fil, bn, ur, ta, te, mr, pa, ar, fa, tr,
 } satisfies Record<Locale, typeof en>;

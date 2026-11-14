@@ -6,8 +6,8 @@
       :target="() => root?.querySelector<HTMLElement>(step.target) ?? null"
       :title="step.title"
       :description="step.description"
-      :prevButtonProps="{ children: '上一步' }"
-      :nextButtonProps="{ children: index === steps.length - 1 ? '开始使用' : '下一步' }" />
+      :prevButtonProps="{ children: 'Anterior' }"
+      :nextButtonProps="{ children: index === steps.length - 1 ? 'Empezar' : 'Siguiente' }" />
     <template #indicators="{ current, total }">{{ current + 1 }} / {{ total }}</template>
   </el-tour>
 </template>

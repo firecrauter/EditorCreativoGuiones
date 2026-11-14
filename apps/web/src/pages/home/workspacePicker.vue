@@ -119,7 +119,7 @@ async function manageEntry(action: "mkdir" | "rename" | "remove", entry?: Worksp
       await files.remove(entry.path, entry.type === "directory");
     } else {
       const { value } = await ElMessageBox.prompt("请输入名称", action === "mkdir" ? "新建文件夹" : "重命名", {
-        inputValue: entry?.name ?? "新建文件夹",
+        inputValue: entry?.name ?? "nuevaCarpeta",
         inputValidator: value => {
           const name = value?.trim();
           return !!name && name !== "." && name !== ".." && !/[\\/:*?"<>|\u0000-\u001f]/.test(name) || translate("请输入有效的单个文件或文件夹名称");

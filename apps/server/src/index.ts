@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { createApp } from "./app";
-import config from "../../../electrobun.config";
+import { appVersion } from "../../../appConfig";
 
 const startTime = Date.now();
 const realPort = Number(process.env.TOONFLOW_SERVER_PORT || 3000);
@@ -11,7 +11,8 @@ const appDirectory = resolve(import.meta.dirname, fromSource ? "../../.." : "../
 const dataDirectory = process.env.TOONFLOW_DATA_DIR ?? resolve(appDirectory, "data");
 const app = await createApp({
   webRoot: resolve(appDirectory, "build/web"),
-  appVersion: config.app.version,
+  appVersion,
+  pluginRevision: process.env.TOONFLOW_PLUGIN_REVISION,
   dataDirectory,
   toolsRoot: resolve(appDirectory, "build/tools"),
   nodesRoot: resolve(appDirectory, "build/nodes"),
@@ -25,7 +26,7 @@ const { initializeMcpRuntime } = await import("./utils/mcp/runtime");
 const { startMobileLinkRuntime } = await import("./utils/mobileLink");
 const { startMultiTenantRuntime } = await import("./utils/multiTenant");
 await startMultiTenantRuntime(app);
-app.listen(realPort, async (error?: Error) => {
+app.listen(realPort, "127.0.0.1", async (error?: Error) => {
   if (error) throw error;
   await initializeMcpRuntime(app, `http://127.0.0.1:${realPort}`, resolve(appDirectory, fromSource ? "packages/mcp/src/stdio.ts" : "build/mcp/stdio.js"));
   await startMobileLinkRuntime(app).catch(error => console.error("设备互联启动失败：", error));

@@ -7,6 +7,7 @@ import type { BunPlugin } from "bun";
 import vue from "@vitejs/plugin-vue";
 import postcssConfig from "../../postcss.config.ts";
 import { toolMetadataSchema, type ToolMetadata } from "./src/runtime";
+import { spanishPlugin, spanishText } from "@toonflow/i18n/spanishPlugin";
 
 export type { ToolMetadata } from "./src/runtime";
 
@@ -33,7 +34,7 @@ export async function createToolConfig(
     ...toolConfig,
     version: version.trim(),
     ...(components ? { components: Object.keys(components) } : {}),
-    displayName: config.displayName.trim(),
+    displayName: spanishText(config.displayName.trim()),
     description: config.description.trim(),
     prompt: config.prompt?.trim() ?? "",
     readme,
@@ -52,7 +53,7 @@ export async function createToolConfig(
       configFile: false,
       root,
       css: { postcss: postcssConfig },
-      plugins: [...(options.clientPlugins ?? []), vue(), {
+      plugins: [spanishPlugin(), ...(options.clientPlugins ?? []), vue(), {
         name: "toolClientEntry",
         resolveId(id) { return id === "virtual:toonflowToolClient" ? entryId : undefined; },
         load(id) {

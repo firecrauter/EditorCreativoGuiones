@@ -3,6 +3,7 @@ import { escapeMessageText } from "./messageText.ts";
 export { escapeMessageText } from "./messageText.ts";
 import zhTw from "./locales/zhTw.json";
 import en from "./locales/en.json";
+import es from "./locales/es.json";
 import ja from "./locales/ja.json";
 import ru from "./locales/ru.json";
 import vi from "./locales/vi.json";
@@ -22,12 +23,13 @@ import ar from "./locales/ar.json";
 import fa from "./locales/fa.json";
 import tr from "./locales/tr.json";
 
-export type Locale = "zh-CN" | "zh-TW" | "en" | "ja" | "ru" | "vi" | "th" | "ko" | "hi"
+export type Locale = "zh-CN" | "zh-TW" | "en" | "es" | "ja" | "ru" | "vi" | "th" | "ko" | "hi"
   | "id" | "ms" | "fil" | "bn" | "ur" | "ta" | "te" | "mr" | "pa" | "ar" | "fa" | "tr";
 export interface MessageDescriptor { id: string; values?: Record<string, unknown> }
 export const supportedLocales: { code: Locale; name: string }[] = [
   { code: "zh-CN", name: "简体中文" }, { code: "zh-TW", name: "繁體中文" },
   { code: "en", name: "English" }, { code: "ja", name: "日本語" },
+  { code: "es", name: "Español" },
   { code: "ru", name: "Русский" }, { code: "vi", name: "Tiếng Việt" },
   { code: "th", name: "ไทย" }, { code: "ko", name: "한국어" }, { code: "hi", name: "हिन्दी" },
   { code: "id", name: "Bahasa Indonesia" }, { code: "ms", name: "Bahasa Melayu" }, { code: "fil", name: "Filipino" },
@@ -35,7 +37,7 @@ export const supportedLocales: { code: Locale; name: string }[] = [
   { code: "te", name: "తెలుగు" }, { code: "mr", name: "मराठी" }, { code: "pa", name: "ਪੰਜਾਬੀ" },
   { code: "ar", name: "العربية" }, { code: "fa", name: "فارسی" }, { code: "tr", name: "Türkçe" },
 ];
-const catalogs: Record<string, Record<string, string>> = { "zh-TW": zhTw, en, ja, ru, vi, th, ko, hi, id, ms, fil, bn, ur, ta, te, mr, pa, ar, fa, tr };
+const catalogs: Record<string, Record<string, string>> = { "zh-TW": zhTw, en, es, ja, ru, vi, th, ko, hi, id, ms, fil, bn, ur, ta, te, mr, pa, ar, fa, tr };
 let activeLocale: Locale = "zh-CN";
 const listeners = new Set<(locale: Locale) => void>();
 const formatters = new Map<string, IntlMessageFormat>();

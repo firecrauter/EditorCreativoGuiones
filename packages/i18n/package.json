@@ -8,6 +8,7 @@
     "./vue": "./src/vue.ts",
     "./vite": "./src/vite.ts",
     "./transform": "./src/transform.ts",
+    "./spanishPlugin": "./src/spanishPlugin.ts",
     "./errors": "./src/errors.ts",
     "./elementPlus": "./src/elementPlus.ts"
   },

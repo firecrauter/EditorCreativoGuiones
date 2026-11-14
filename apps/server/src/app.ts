@@ -107,7 +107,25 @@ export async function createApp({
     await buildRoute();
     app.use(logger("dev"));
   }
-  app.use(cors());
+  // Personal fork: reject browser requests from other sites, including DNS rebinding hosts.
+  app.use((request, response, next) => {
+    const origin = request.get("origin");
+    const ports = new Set([String(request.socket.localPort), "5173"]);
+    const hosts = new Set(["localhost", "127.0.0.1"]);
+    let validOrigin = !origin;
+    if (origin) {
+      try {
+        const url = new URL(origin);
+        validOrigin = url.protocol === "http:" && hosts.has(url.hostname) && ports.has(url.port);
+      } catch { validOrigin = false; }
+    }
+    if (!hosts.has(request.hostname) || !validOrigin) {
+      response.status(403).json({ code: 403, data: null, message: "Acceso permitido solo desde el editor local." });
+      return;
+    }
+    next();
+  });
+  app.use(cors({ origin: false }));
   app.use(languageRequest);
   const { initializeMultiTenantRuntime, multiTenantAccess } = await import("@/utils/multiTenant/runtime");
   initializeMultiTenantRuntime(app);

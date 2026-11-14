@@ -1,4 +1,5 @@
 node_modules/
+/localRuntime/
 dist/
 /build/
 /data/

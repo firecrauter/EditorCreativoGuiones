@@ -5,6 +5,7 @@ import { locale, setLocale, translate } from "@toonflow/i18n/vue";
 import { uiSettings } from "@/stores/settings";
 import type { LocaleConfig } from "vue-stream-markdown";
 import "dayjs/locale/zh-cn";
+import "dayjs/locale/es";
 import "dayjs/locale/zh-tw";
 import "dayjs/locale/ja";
 import "dayjs/locale/ru";

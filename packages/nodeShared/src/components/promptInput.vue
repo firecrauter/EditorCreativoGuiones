@@ -339,7 +339,7 @@ watch(senderElement, (element, _previous, onCleanup) => {
     if (sender === instance && editor.isConnected) await insertNodes(nodes);
   };
   editor.setAttribute("role", "textbox");
-  editor.setAttribute("aria-label", "生成提示词");
+  editor.setAttribute("aria-label", "Instrucción de generación");
   editor.setAttribute("aria-multiline", "true");
   instance.bus.on("textPrompt", xSender.EventSet.EVENT_COMMON_CHANGE, () => {
     syncModel();

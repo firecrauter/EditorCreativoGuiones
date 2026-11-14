@@ -6,6 +6,7 @@ import vue from "@vitejs/plugin-vue";
 import type { Rule } from "@form-create/element-ui";
 import { z } from "zod";
 import postcssConfig from "../../postcss.config.ts";
+import { spanishPlugin, spanishText } from "@toonflow/i18n/spanishPlugin";
 
 const tiptapGlobals = {
   "@tiptap/core": "toonflowTiptapHost.core",
@@ -39,7 +40,7 @@ export interface NodeConfig {
 export function createNodeConfig(config: NodeConfig, configUrl: string, options: { outDir?: string; syncToData?: boolean } = {}) {
   const { name: nodeName } = config;
   const metadata = {
-    displayName: config.displayName.trim(),
+    displayName: spanishText(config.displayName.trim()),
     author: config.author.trim(),
     github: config.github.trim(),
     configRules: z.array(z.record(z.string(), z.json())).max(100).parse(config.configRules ?? []),
@@ -60,6 +61,7 @@ export function createNodeConfig(config: NodeConfig, configUrl: string, options:
     root,
     css: { postcss: postcssConfig },
     plugins: [
+      spanishPlugin(),
       vue(),
       {
         name: "syncNodeFile",
